@@ -1,3 +1,4 @@
+import { OtherEntry, OtherOutput } from "../../type/Kardex";
 import { QueryMetadata } from "../types/common";
 import { IDeleteOther, IInitialBalanceBody, IKardexOthersGetParams, IKardexReportsParams, IOthersEntryMoreBody, IOthersOutputMoreBody, KardexOthersReturnMap, KardexReportReturnMap } from "../types/valued-physical";
 import { generateQueryString } from "../utils/common";
@@ -80,5 +81,19 @@ export abstract class ValuedPhysicalApiConector {
         } catch (error) {
             return null
         }
+    }
+
+    static async saveOtherOutput(outputData: Partial<OtherOutput>) {
+        const endpoint = outputData._id ? '/v1/valued-physical-inventory/outputs/update' : '/v1/valued-physical-inventory/other-outputs';
+        const payload = outputData._id ? { ...outputData, outputId: outputData._id } : outputData; // Enviar outputId para actualizaciones
+        const method = outputData._id ? 'put' : 'post'; // Usar PUT para actualizar, POST para crear
+        return await ApiConnector.getInstance()[method](endpoint, payload);
+    }
+
+    static async saveOtherEntry(entryData: Partial<OtherEntry>) {
+        const endpoint = entryData._id ? '/v1/valued-physical-inventory/entry/update' : '/v1/valued-physical-inventory/other-entries';
+        const payload = entryData._id ? { ...entryData, entryId: entryData._id } : entryData; // Enviar entryId para actualizaciones
+        const method = entryData._id ? 'put' : 'post'; // Usar PUT para actualizar, POST para crear
+        return await ApiConnector.getInstance()[method](endpoint, payload);
     }
 }

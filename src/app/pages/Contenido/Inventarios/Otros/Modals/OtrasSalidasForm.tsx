@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import Input from "../../../../EntryComponents/Inputs";
 import moment from "moment-timezone";
-import { MatchedElement, OutputItemBody } from "../../../../../../type/Kardex";
+import { MatchedElement, OtherOutput, OutputItemBody } from "../../../../../../type/Kardex";
 import { AuthService } from "../../../../../../api/services/AuthService";
 import { IOthersOutputMoreBody } from "../../../../../../api/types/kardex";
 import toast from "react-hot-toast";
@@ -10,8 +10,10 @@ import InventoriesOutputForm from "./InventoriesOutputForm";
 import { ValuedPhysicalApiConector } from "../../../../../../api/classes/valued-physical";
 
 interface Props {
-    onCancel?: () => void;
-    elements: MatchedElement[]
+    onCancel: () => void;
+    elements: MatchedElement[];
+    initialData: Partial<OtherOutput>; // Asegurarse de que esta propiedad esté definida
+    onSubmit: (data: Partial<OtherOutput>) => Promise<void>;
 }
 
 type FormType = {
@@ -20,7 +22,7 @@ type FormType = {
     registerDate: string;
 }
 
-const OtrasSalidasForm = ({ elements, onCancel }: Props) => {
+const OtrasSalidasForm: React.FC<Props> = ({ onCancel, elements, initialData, onSubmit }) => {
     // const { selectedInventario } = useContext(InventariosOtrosContext)
     const [active, setActive] = useState(false);
 
@@ -31,7 +33,7 @@ const OtrasSalidasForm = ({ elements, onCancel }: Props) => {
 
     const [inventories, setInventories] = useState<OutputItemBody[]>([])
 
-    const onSubmit = async (data: FormType) => {
+    const handleFormSubmit = async (data: FormType) => { // Renombrar la función interna
         const userData = AuthService.getUser()
 
         const reduced = inventories.reduce<{ [key: string]: IOthersOutputMoreBody['elementsDetails'][0]['elements'] }>((acc, prev) => {
@@ -159,7 +161,7 @@ const OtrasSalidasForm = ({ elements, onCancel }: Props) => {
 
     return (
         <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(handleFormSubmit)} // Usar el nuevo nombre
             className="flex flex-col gap-6 justify-center items-center w-full p-6"
         ><div className="flex gap-4 justify-between text-sm flex-wrap w-full">
                 <Input

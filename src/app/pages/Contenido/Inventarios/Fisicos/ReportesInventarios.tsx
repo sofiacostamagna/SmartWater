@@ -42,38 +42,55 @@ const ReportesInventarios = () => {
     };
 
     const getData = useCallback(async () => {
-        setLoading(true)
+        setLoading(true);
 
-        const filters = savedFilters ? { ...savedFilters } : {}
+        const filters = savedFilters ? { ...savedFilters } : {};
         if (!filters.endDate) {
-            filters.endDate = moment().format("YYYY-MM-DD")
+            filters.endDate = moment().format("YYYY-MM-DD");
         }
 
         if (!filters.initialDate) {
-            filters.initialDate = "2020-01-01"
+            filters.initialDate = "2020-01-01";
         }
 
-        const promises: Promise<PhysiscalGeneratedReport[] | { message: string; } | null>[] = []
+        const promises: Promise<PhysiscalGeneratedReport[] | { message: string; } | null>[] = [];
 
         if (filters.user) {
             for (const dist of filters.user.split(',')) {
-                promises.push(PhysicalInventoryApiConector.get({ type: 'generated-reports', filters: { ...filters, user: dist } }))
+                promises.push(PhysicalInventoryApiConector.get({ type: 'generated-reports', filters: { ...filters, user: dist } }));
             }
         } else {
-            promises.push(PhysicalInventoryApiConector.get({ type: 'generated-reports', filters }))
+            promises.push(PhysicalInventoryApiConector.get({ type: 'generated-reports', filters }));
         }
 
-        const responses = await Promise.all(promises)
-        const array: PhysiscalGeneratedReport[] = []
+        const responses = await Promise.all(promises);
+        const array: PhysiscalGeneratedReport[] = [];
 
         responses.forEach(res => {
-            const results = res ? 'message' in res ? [] : res : []
-            array.push(...results)
-        })
+            const results = res ? 'message' in res ? [] : res : [];
+            array.push(...results);
+        });
 
-        setCurrentData(array.sort((a, b) => moment(b.registerDate).diff(moment(a.registerDate))))
-        setLoading(false)
-    }, [savedFilters, setLoading])
+        // Incluir elementos faltantes con saldo 0
+        const elementsWithZeroBalance = elements.map(element => ({
+            ...element,
+            balance: 0,
+            registerDate: filters.endDate,
+            user: filters.user || "N/A",
+            role: "user" as "user", // Garantizar que el valor sea compatible con el tipo
+            elements: [], // Valor predeterminado para la propiedad 'elements'
+        }));
+
+        const mergedData = [...array, ...elementsWithZeroBalance].reduce((acc, item) => {
+            if (!acc.some(existing => existing._id === item._id)) {
+                acc.push(item);
+            }
+            return acc;
+        }, [] as PhysiscalGeneratedReport[]);
+
+        setCurrentData(mergedData.sort((a, b) => moment(b.registerDate).diff(moment(a.registerDate))));
+        setLoading(false);
+    }, [savedFilters, setLoading, elements]);
 
     useEffect(() => {
         getData()

@@ -188,23 +188,24 @@ export type OutputItemBody = {
     outputType: 'production_delivered' | 'adjustment_exit';
 }
 
-export type OtherEntry = {
-    _id: string;
-    user: User;
+export interface OtherEntry {
+    _id?: string; // Hacer que _id sea opcional
     code: string;
-    quantity: number;
     balance: {
-        inputQuantity: number;
-        inputImport: number;
         balanceAmount: number;
-        cpp: number;
         balanceImport: number;
+        cpp: number;
+        inputImport: number;
+        inputQuantity: number;
     };
-    registerDate: string;
+    detail: string;
     documentNumber: string;
-    type: 'production_received' | 'adjustment_entry';
-    detail: string,
     elementName: string;
+    quantity: number;
+    registerDate: string;
+    type: string;
+    user: string | User; // Permitir que sea string o User
+    comment?: string; // Agregamos la propiedad 'comment' como opcional
 }
 
 export type OtherOutput = {

@@ -1,8 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import Input from "../../../../EntryComponents/Inputs";
 import moment from "moment";
-import { EntryItemBody, MatchedElement } from "../../../../../../type/Kardex";
+import { EntryItemBody, MatchedElement, OtherEntry } from "../../../../../../type/Kardex";
 import InventoriesEntryForm from "./InventoriesEntryForm";
 import { AuthService } from "../../../../../../api/services/AuthService";
 import { IOthersEntryMoreBody } from "../../../../../../api/types/kardex";
@@ -11,7 +11,9 @@ import { ValuedPhysicalApiConector } from "../../../../../../api/classes/valued-
 
 interface Props {
     onCancel?: () => void;
-    elements: MatchedElement[]
+    elements: MatchedElement[];
+    initialData: Partial<OtherEntry>;
+    onSubmit: (data: Partial<OtherEntry>) => Promise<void>;
 }
 
 type FormType = {
@@ -20,18 +22,31 @@ type FormType = {
     registerDate: string;
 }
 
-const OtrosIngresosForm = ({ elements, onCancel }: Props) => {
-    // const { selectedInventario } = useContext(InventariosOtrosContext)
+const OtrosIngresosForm = ({ initialData, onSubmit, onCancel, elements }: Props) => {
+    const [formData, setFormData] = useState(initialData || {}); // Inicializamos con los datos existentes
+
+    useEffect(() => {
+        setFormData(initialData || {}); // Actualizamos los datos si cambian
+    }, [initialData]);
+
+    const handleChange = (field: string, value: any) => {
+        setFormData({ ...formData, [field]: value });
+    };
+
+    const handleSubmit = () => {
+        onSubmit(formData); // Enviamos los datos actualizados
+    };
+
     const [active, setActive] = useState(false);
 
-    const { register, formState: { errors, isValid }, handleSubmit } = useForm<FormType>({
+    const { register, formState: { errors, isValid }, handleSubmit: handleFormSubmit } = useForm<FormType>({
         defaultValues: {},
         mode: 'all'
     })
 
     const [inventories, setInventories] = useState<EntryItemBody[]>([])
 
-    const onSubmit = async (data: FormType) => {
+    const onSubmitHandler = async (data: FormType) => {
         const userData = AuthService.getUser()
 
         const selected = moment(data.registerDate)
@@ -117,7 +132,7 @@ const OtrosIngresosForm = ({ elements, onCancel }: Props) => {
 
     return (
         <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleFormSubmit(onSubmitHandler)}
             className="flex flex-col gap-6 justify-center items-center w-full p-6"
         >
             <div className="flex gap-4 justify-between text-sm flex-wrap w-full">
@@ -133,6 +148,8 @@ const OtrosIngresosForm = ({ elements, onCancel }: Props) => {
                     containerClassName="flex-1"
                     className="full-selector bg-transparent w-full"
                     icon={<img src="/desde.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />}
+                    value={formData.registerDate || ""}
+                    onChange={(e) => handleChange("registerDate", e.target.value)}
                 />
 
                 <Input
@@ -142,6 +159,8 @@ const OtrosIngresosForm = ({ elements, onCancel }: Props) => {
                     required
                     register={register}
                     errors={errors.documentNumber}
+                    value={formData.documentNumber || ""}
+                    onChange={(e) => handleChange("documentNumber", e.target.value)}
                 />
             </div>
 
@@ -154,6 +173,8 @@ const OtrosIngresosForm = ({ elements, onCancel }: Props) => {
                 name="comment"
                 register={register}
                 errors={errors.comment}
+                value={formData.comment || ""} // Verificamos si 'comment' existe en formData
+                onChange={(e) => handleChange("comment", e.target.value)} // Actualizamos el estado local
             />
 
             <div className="w-full  sticky bottom-0 bg-main-background h-full z-50">

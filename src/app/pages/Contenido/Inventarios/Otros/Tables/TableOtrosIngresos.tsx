@@ -107,7 +107,7 @@ const TableOtrosIngresos = ({ data, className, tableClassName, pageSize, totalRo
                     <button onClick={() => { setSelectedEntry(row); setShowModal(true) }}>
                         <i className="fa-solid fa-pen-to-square text-blue_bright" aria-hidden="true"></i>
                     </button>
-                    <button onClick={() => deleteRegistry(row._id)}>
+                    <button onClick={() => row._id && deleteRegistry(row._id)}> {/* Ensure _id is defined */}
                         <i className="fa fa-trash text-red-500" aria-hidden="true"></i>
                     </button>
                 </div>

@@ -37,6 +37,18 @@ const SaldosIniciales = () => {
         getData()
     }, [getData])
 
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        if (e.target.value === "0") {
+            e.target.value = "";
+        }
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        if (e.target.value === "") {
+            e.target.value = "0";
+        }
+    };
+
     return (
         <>
             <InventariosLayout swith switchDetails={[
@@ -60,33 +72,45 @@ const SaldosIniciales = () => {
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Agregar saldos iniciales
                 </h2>
-                <AddEditInitialBalances onCancel={() => setShowMiniModal(false)} elemnts={elements} />
+                <AddEditInitialBalances 
+                    onCancel={() => setShowMiniModal(false)} 
+                    elemnts={elements} 
+                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+                />
             </Modal>
 
             <Modal isOpen={showModal && selectedInventario.detailsToElements.length > 0} onClose={() => {
                 setShowModal(false);
-                setSelectedInvetario(initialBalanceMock)
+                setSelectedInvetario(initialBalanceMock);
             }} className='!w-[95%] sm:!w-3/4'>
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Agregar saldos iniciales
                 </h2>
-                <AddEditInitialBalances onCancel={() => {
-                    setShowModal(false);
-                    setSelectedInvetario(initialBalanceMock)
-                }} elemnts={elements} />
+                <AddEditInitialBalances 
+                    onCancel={() => {
+                        setShowModal(false);
+                        setSelectedInvetario(initialBalanceMock);
+                    }} 
+                    elemnts={elements} 
+                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+                />
             </Modal>
 
             <Modal isOpen={selectedOption && selectedInventario.detailsToElements.length > 0} onClose={() => {
                 setSelectedOption(false);
-                setSelectedInvetario(initialBalanceMock)
+                setSelectedInvetario(initialBalanceMock);
             }} className='!w-[95%] sm:!w-3/4'>
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Ver saldos iniciales
                 </h2>
-                <ShowInitialBalancesModal onCancel={() => {
-                    setSelectedOption(false);
-                    setSelectedInvetario(initialBalanceMock)
-                }} elemnts={elements} />
+                <ShowInitialBalancesModal 
+                    onCancel={() => {
+                        setSelectedOption(false);
+                        setSelectedInvetario(initialBalanceMock);
+                    }} 
+                    elemnts={elements} 
+                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+                />
             </Modal>
         </>
     )

@@ -41,28 +41,47 @@ const Ingresos = () => {
     }, [])
 
     const getData = useCallback(async () => {
-        setLoading(true)
+        setLoading(true);
 
-        const filters = savedFilters ? { ...savedFilters } : {}
+        const filters = savedFilters ? { ...savedFilters } : {};
         if (!!filters.initialDate && !filters.finalDate) {
-            filters.finalDate = moment().format("YYYY-MM-DD")
+            filters.finalDate = moment().format("YYYY-MM-DD");
         }
 
         if (!filters.initialDate && !!filters.finalDate) {
-            filters.initialDate = "2020-01-01"
+            filters.initialDate = "2020-01-01";
         }
 
-        const res = await ValuedPhysicalApiConector.getOthers({ type: 'income', filters, pagination: { page: currentPage, pageSize } })
+        const res = await ValuedPhysicalApiConector.getOthers({
+            type: 'income', // Aseguramos que solo se obtengan ingresos
+            filters,
+            pagination: { page: currentPage, pageSize },
+        });
 
-        setCurrentData(res?.data || [])
-        setTotal(res?.metadata?.total || 0)
+        setCurrentData(res?.data || []); // Aseguramos que los datos se asignen correctamente
+        setTotal(res?.metadata?.total || 0);
 
-        setLoading(false)
-    }, [currentPage, savedFilters, setLoading])
+        setLoading(false);
+    }, [currentPage, savedFilters, setLoading]);
 
     useEffect(() => {
         getData()
     }, [getData])
+
+    const saveEntry = async (entryData: Partial<OtherEntry>) => {
+        try {
+            setLoading(true);
+            const payload = entryData._id ? { ...entryData, entryId: entryData._id } : entryData; // Enviar entryId para actualizaciones
+            await ValuedPhysicalApiConector.saveOtherEntry(payload);
+            await getData(); // Refrescar los datos después de la operación
+            setShowModal(false);
+            setShowMiniModal(false);
+        } catch (error) {
+            console.error("Error saving entry:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -93,17 +112,28 @@ const Ingresos = () => {
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Registro otros ingresos
                 </h2>
-                <OtrosIngresosForm onCancel={() => setShowMiniModal(false)} elements={elements} />
+                <OtrosIngresosForm
+                    onCancel={() => setShowMiniModal(false)}
+                    elements={elements}
+                    initialData={otroEntry} // Aseguramos que el formulario comience vacío
+                    onSubmit={(entryData: Partial<OtherEntry>) => saveEntry(entryData)} // Crear nueva entrada
+                />
             </Modal>
 
             <Modal
                 isOpen={selectedEntry._id !== "" && showModal}
-                onClose={() => { setSelectedEntry(otroEntry); setShowModal(false) }} className='!w-3/4 md:!w-1/2'
+                onClose={() => { setSelectedEntry(otroEntry); setShowModal(false); }}
+                className='!w-3/4 md:!w-1/2'
             >
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Editar otros ingresos
                 </h2>
-                <OtrosIngresosForm onCancel={() => { setSelectedEntry(otroEntry); setShowModal(false) }} elements={elements} />
+                <OtrosIngresosForm
+                    onCancel={() => { setSelectedEntry(otroEntry); setShowModal(false); }}
+                    elements={elements}
+                    initialData={selectedEntry} // Pasamos los datos seleccionados al formulario
+                    onSubmit={(entryData: Partial<OtherEntry>) => saveEntry({ ...entryData, _id: selectedEntry._id || undefined })} // Usar _id para actualizaciones
+                />
             </Modal>
 
             <Modal

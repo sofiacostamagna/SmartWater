@@ -11,12 +11,16 @@ import toast from "react-hot-toast";
 import { InventariosValoradosContext } from "../InventariosValoradosProvider";
 import { ValuedPhysicalApiConector } from "../../../../../../api/classes/valued-physical";
 
-interface Props {
-    onCancel?: () => void;
+type Props = {
+    onCancel: () => void;
     elemnts: MatchedElement[];
-}
+    inputHandlers?: {
+        onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
+        onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
+    };
+};
 
-const AddEditInitialBalances = ({ elemnts, onCancel }: Props) => {
+const AddEditInitialBalances: React.FC<Props> = ({ onCancel, elemnts, inputHandlers }) => {
     const [active, setActive] = useState(false);
     const { selectedInventario } = useContext(InventariosValoradosContext)
 
@@ -102,6 +106,8 @@ const AddEditInitialBalances = ({ elemnts, onCancel }: Props) => {
                 register={register}
                 errors={errors.elements?.[index]?.quantity}
                 validateAmount={(val: number) => val < 0 ? "Indica un valor" : true}
+                onFocus={inputHandlers?.onFocus}
+                onBlur={inputHandlers?.onBlur}
             />
         },
         {
@@ -117,6 +123,8 @@ const AddEditInitialBalances = ({ elemnts, onCancel }: Props) => {
                 register={register}
                 errors={errors.elements?.[index]?.unitPrice}
                 validateAmount={(val: number) => val < 0 ? "Indica un valor" : true}
+                onFocus={inputHandlers?.onFocus}
+                onBlur={inputHandlers?.onBlur}
             />
         },
     ], [errors.elements, register])

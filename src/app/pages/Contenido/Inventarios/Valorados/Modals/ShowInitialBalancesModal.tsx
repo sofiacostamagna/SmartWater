@@ -11,9 +11,13 @@ import { useGlobalContext } from '../../../../../SmartwaterContext';
 interface Props {
     onCancel?: () => void;
     elemnts: MatchedElement[];
+    inputHandlers?: {
+        onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
+        onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
+    };
 }
 
-const ShowInitialBalancesModal = ({ elemnts, onCancel }: Props) => {
+const ShowInitialBalancesModal = ({ elemnts, onCancel, inputHandlers }: Props) => {
     const { selectedInventario } = useContext(InventariosValoradosContext)
     const { setLoading } = useGlobalContext()
 
@@ -79,6 +83,14 @@ const ShowInitialBalancesModal = ({ elemnts, onCancel }: Props) => {
 
                 <DataTable columns={columns} className="w-full no-inner-border border !border-font-color/20 !rounded-[10px]"
                     data={selectedInventario.detailsToElements} noDataComponent={<div className="min-h-[150px] flex items-center justify-center">Sin productos</div>} />
+            </div>
+            <div>
+                <input
+                    type="number"
+                    defaultValue="0"
+                    onFocus={inputHandlers?.onFocus}
+                    onBlur={inputHandlers?.onBlur}
+                />
             </div>
         </div>
     )

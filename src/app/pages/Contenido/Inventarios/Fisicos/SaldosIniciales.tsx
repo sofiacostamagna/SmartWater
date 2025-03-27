@@ -121,11 +121,11 @@ const SaldosIniciales = () => {
                 <FiltrosSaldosIniciales distribuidores={distribuidores} initialFilters={savedFilters} onChange={handleFilterChange} />
             </Modal>
 
-            <Modal isOpen={showMiniModal} onClose={() => setShowMiniModal(false)}>
-                <SaldosInicialesForm distribuidores={distribuidores} elements={elements} onCancel={() => { setShowMiniModal(false) }} />
-            </Modal>
-
-            <Modal isOpen={showModal && selectedBalance.code !== ""} onClose={() => { setShowModal(false); setSelectedBalance(balance) }}>
+            <Modal
+                isOpen={showMiniModal}
+                onClose={() => setShowMiniModal(false)}
+                className="w-full max-w-screen-xl" 
+            >
                 <SaldosInicialesForm distribuidores={distribuidores} elements={elements} onCancel={() => { setShowModal(false); setSelectedBalance(balance) }} />
             </Modal>
 

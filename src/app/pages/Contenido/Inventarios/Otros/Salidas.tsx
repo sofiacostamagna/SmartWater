@@ -40,19 +40,38 @@ const Salidas = () => {
     }, [])
 
     const getData = useCallback(async () => {
-        setLoading(true)
+        setLoading(true);
 
-        const res = await ValuedPhysicalApiConector.getOthers({ type: 'exits', filters: savedFilters, pagination: { page: currentPage, pageSize } })
+        const res = await ValuedPhysicalApiConector.getOthers({
+            type: 'exits', // Aseguramos que solo se obtengan salidas
+            filters: savedFilters,
+            pagination: { page: currentPage, pageSize },
+        });
 
-        setCurrentData(res?.data || [])
-        setTotal(res?.metadata?.total || 0)
+        setCurrentData(res?.data || []); // Aseguramos que los datos se asignen correctamente
+        setTotal(res?.metadata?.total || 0);
 
-        setLoading(false)
-    }, [currentPage, savedFilters, setLoading])
+        setLoading(false);
+    }, [currentPage, savedFilters, setLoading]);
 
     useEffect(() => {
         getData()
     }, [getData])
+
+    const saveOutput = async (outputData: Partial<OtherOutput>) => {
+        try {
+            setLoading(true);
+            const payload = outputData._id ? { ...outputData, outputId: outputData._id } : outputData; // Enviar outputId para actualizaciones
+            await ValuedPhysicalApiConector.saveOtherOutput(payload);
+            await getData(); // Refrescar los datos después de la operación
+            setShowModal(false);
+            setShowMiniModal(false);
+        } catch (error) {
+            console.error("Error saving output:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -71,8 +90,14 @@ const Salidas = () => {
                         url: "/Finanzas/Inventarios/Otros/Salidas"
                     },
                 ]} add onAdd={() => setShowMiniModal(true)}>
-                <TableOtrasSalidas data={currentData.sort((a, b) => Number(b.code.split("-")[2]) - Number(a.code.split("-")[2]))}
-                    tableClassName='no-inner-border border !border-font-color/20 !rounded-[10px]' className='w-full xl:!w-3/4' handleChangePage={setCurrentPage} totalRows={total} pageSize={pageSize} />
+                <TableOtrasSalidas
+                    data={currentData.sort((a, b) => Number(b.code.split("-")[2]) - Number(a.code.split("-")[2]))} // Ordenar correctamente
+                    tableClassName='no-inner-border border !border-font-color/20 !rounded-[10px]'
+                    className='w-full xl:!w-3/4'
+                    handleChangePage={setCurrentPage}
+                    totalRows={total}
+                    pageSize={pageSize}
+                />
             </InventariosLayout>
 
             <Modal isOpen={showFiltro} onClose={() => setShowFiltro(false)}>
@@ -83,17 +108,27 @@ const Salidas = () => {
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Registro otras salidas
                 </h2>
-                <OtrasSalidasForm onCancel={() => setShowMiniModal(false)} elements={elements} />
+                <OtrasSalidasForm
+                    onCancel={() => setShowMiniModal(false)}
+                    elements={elements}
+                    initialData={otroOutput} // Aseguramos que el formulario comience vacío
+                    onSubmit={(outputData: Partial<OtherOutput>) => saveOutput(outputData)} // Crear nueva salida
+                />
             </Modal>
 
             <Modal className='!w-3/4 md:!w-1/2 xl:!w-1/3'
                 isOpen={selectedOutput._id !== "" && showModal}
-                onClose={() => { setSelectedOutput(otroOutput); setShowModal(false) }}
+                onClose={() => { setSelectedOutput(otroOutput); setShowModal(false); }}
             >
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Editar otras salidas
                 </h2>
-                <OtrasSalidasForm onCancel={() => { setSelectedOutput(otroOutput); setShowModal(false) }} elements={elements} />
+                <OtrasSalidasForm
+                    onCancel={() => { setSelectedOutput(otroOutput); setShowModal(false); }}
+                    elements={elements}
+                    initialData={selectedOutput} // Pasamos los datos seleccionados al formulario
+                    onSubmit={(outputData: Partial<OtherOutput>) => saveOutput({ ...outputData, _id: selectedOutput._id || undefined })} // Usar _id para actualizaciones
+                />
             </Modal>
 
             <Modal

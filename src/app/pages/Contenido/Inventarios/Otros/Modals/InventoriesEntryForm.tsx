@@ -101,16 +101,7 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
 
             {isOpen && (
                 <div className="flex flex-col gap-4 text-sm">
-                    <div className="flex justify-end mb-4">
-                        <select
-                            value={viewType}
-                            onChange={(e) => setViewType(e.target.value as "Productos" | "Items")}
-                            className="p-2 py-2.5 rounded-md bg-main-background outline outline-2 outline-black"
-                        >
-                            <option value="Productos">Productos</option>
-                            <option value="Items">Items</option>
-                        </select>
-                    </div>
+                   
                     <div className="flex flex-col gap-4 text-sm">
                         <div className="flex gap-4 justify-between text-sm flex-wrap">
                             <motion.div

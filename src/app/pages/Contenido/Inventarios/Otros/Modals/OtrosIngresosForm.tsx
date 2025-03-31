@@ -23,7 +23,7 @@ type FormType = {
 }
 
 const OtrosIngresosForm = ({ initialData, onSubmit, onCancel, elements }: Props) => {
-    const dropdownRef = useRef<HTMLDivElement>(null); // Add dropdownRef
+  
 
     const [formData, setFormData] = useState(initialData || {}); // Inicializamos con los datos existentes
 
@@ -35,9 +35,6 @@ const OtrosIngresosForm = ({ initialData, onSubmit, onCancel, elements }: Props)
         setFormData({ ...formData, [field]: value });
     };
 
-    const handleSubmit = () => {
-        onSubmit(formData); // Enviamos los datos actualizados
-    };
 
     const [active, setActive] = useState(false);
 
@@ -50,23 +47,16 @@ const OtrosIngresosForm = ({ initialData, onSubmit, onCancel, elements }: Props)
 
     const [searchTerm, setSearchTerm] = useState("");
     const [dropdownVisible, setDropdownVisible] = useState(false);
-    const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-    const [selectedElementName, setSelectedElementName] = useState<string>("Seleccione uno");
+
+
 
     const filteredElements = elements.filter((element) =>
         element.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const toggleDropdown = () => {
-        setDropdownVisible(!dropdownVisible);
-    };
+;
 
     const handleSelectElement = (element: MatchedElement) => {
-        setSelectedElementName(element.name);
+
         setDropdownVisible(false);
         setSearchTerm("");
     };
@@ -203,62 +193,11 @@ const OtrosIngresosForm = ({ initialData, onSubmit, onCancel, elements }: Props)
                 name="comment"
                 register={register}
                 errors={errors.comment}
-                value={formData.comment || ""} // Verificamos si 'comment' existe en formData
-                onChange={(e) => handleChange("comment", e.target.value)} // Actualizamos el estado local
+                value={formData.comment || ""} 
+                onChange={(e) => handleChange("comment", e.target.value)}
             />
 
-            <div className="relative" ref={dropdownRef}>
-                <div
-                    className={`p-2 py-2.5 rounded-md focus:outline-4 bg-main-background outline outline-2 outline-black cursor-pointer flex justify-between items-center`}
-                    onClick={() => setDropdownVisible(!dropdownVisible)}
-                >
-                    <span className="truncate">{selectedElementName}</span>
-                    <i
-                        className={`fa-solid fa-angle-down transition-transform ml-2 ${
-                            dropdownVisible ? "rotate-180" : ""
-                        }`}
-                    ></i>
-                </div>
-                {dropdownVisible && (
-                    <div
-                        className="absolute z-[9999] mt-1 bg-main-background border border-black rounded-md shadow-lg max-h-60 overflow-y-auto"
-                        style={{
-                            position: "fixed",
-                            top: dropdownRef.current?.getBoundingClientRect().bottom,
-                            left: dropdownRef.current?.getBoundingClientRect().left,
-                            width: dropdownRef.current?.offsetWidth,
-                        }}
-                    >
-                        <div className="sticky top-0 bg-main-background p-2 border-b border-black">
-                            <input
-                                type="text"
-                                placeholder="Buscar..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none"
-                                autoFocus
-                            />
-                        </div>
-                        <div className="py-1">
-                            {filteredElements.length > 0 ? (
-                                filteredElements.map((element, index) => (
-                                    <div
-                                        key={index}
-                                        className="px-4 py-2 cursor-pointer hover:bg-gray-200"
-                                        onClick={() => handleSelectElement(element)}
-                                    >
-                                        {element.name}
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="px-4 py-2 text-gray-500">
-                                    No se encontraron resultados
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
+       
 
             <div className="w-full  sticky bottom-0 bg-main-background h-full z-50">
                 <div className="py-4 flex flex-row gap-4 items-center justify-center px-6">

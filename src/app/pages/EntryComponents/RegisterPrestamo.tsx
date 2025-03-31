@@ -51,101 +51,89 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
   });
 
   const onSubmit: SubmitHandler<ILoanBody['data']> = async (data) => {
+    console.log('Form data before processing:', data);
+
+    // Validación de productos
     if (addedProducts.length === 0) {
-      toast.error("Por favor agrega un producto.");
-      return;
-    }
-    setActive(true);
-    const userData: UserData | null = AuthService.getUser();
-
-    if (!!data.contract.validUntil) {
-      const selected = moment(data.contract.validUntil)
-      const now = moment.tz("America/La_Paz").set({ date: selected.date(), month: selected.month(), year: selected.year() }).add(5, 'minute')
-      data.contract.validUntil = now.format("YYYY-MM-DDTHH:mm")
+        toast.error("Por favor agrega un producto.");
+        return;
     }
 
+    // Procesar datos del contrato
+    let contractData = undefined;
+    if (data.contract && (data.contract.link || data.contract.validUntil)) {
+        contractData = {
+            link: data.contract.link || null,
+            validUntil: data.contract.validUntil || null,
+        };
+    }
+
+    // Construir el objeto final para enviar
     const values: ILoanBody['data'] = {
-      ...data,
-      detail: addedProducts.map((item) => ({
-        item: products?.find((p) => p.name === item.item)?._id || "",
-        quantity: item.quantity,
-      })),
-      user: userData?._id || "",
-      client: selectedClient._id,
+        ...data,
+        ...(contractData ? { contract: contractData } : {}), // Incluir contrato solo si existe
+        detail: addedProducts.map((item) => ({
+            item: products?.find((p) => p.name === item.item)?._id || "",
+            quantity: item.quantity,
+        })),
+        user: AuthService.getUser()?._id || "",
+        client: selectedClient._id,
     };
 
-    let res = null
-
-    if (selectedLoan) {
-      res = await LoansApiConector.update({ data: values, loanId: selectedLoan._id });
-    } else {
-      res = await LoansApiConector.create({ data: values });
+    // Eliminar el contrato si está vacío
+    if (!values.contract?.link && !values.contract?.validUntil) {
+        delete values.contract;
     }
 
-    if (res) {
-      if ('error' in res) {
-        toast.error(
-          (t) => (
-            <div>
-              <p className="mb-4 text-center text-[#888]">
-                No hay saldos suficiente en inventario para hacer este movimiento, <br /> pulsa <b>Proceder</b> para forzar su registro
-              </p>
-              <div className="flex justify-center">
-                <button
-                  className="bg-red-500 px-3 py-1 rounded-lg ml-2 text-white"
-                  onClick={() => {
-                    toast.dismiss(t.id);
-                    toast.error("Prestamo no registrado");
-                    reset();
-                    setAddedProducts([]);
-                    navigate("/Prestamos", { replace: true })
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="bg-blue_custom px-3 py-1 rounded-lg ml-2 text-white"
-                  onClick={async () => {
-                    toast.dismiss(t.id);
-                    let resp2 = await LoansApiConector.create({ data: { ...values, forceOut: true } })
+    console.log('Final values to be sent:', values);
 
-                    if (resp2) {
-                      toast.success(`Prestamo ${selectedLoan ? "editado" : "registrado"}`);
-                      reset();
-                      setAddedProducts([]);
+    setActive(true);
 
-                      navigate("/Prestamos", { replace: true })
-                      window.location.reload()
-                    } else {
-                      toast.error("Upss error al registrar prestamo");
-                    }
-                  }}
-                >
-                  Proceder
-                </button>
-              </div>
-            </div >
-          ),
-          {
-            className: "shadow-md dark:shadow-slate-400 border border-slate-100 bg-main-background",
-            icon: null,
-            position: "top-center"
-          }
-        );
-      } else {
-        toast.success(`Prestamo ${selectedLoan ? "editado" : "registrado"}`);
-        reset();
-        setAddedProducts([]);
+    try {
+        let res;
+        if (selectedLoan) {
+            console.log('Editing loan with ID:', selectedLoan._id);
+            res = await LoansApiConector.update({
+                data: values,
+                loanId: selectedLoan._id,
+            });
+        } else {
+            res = await LoansApiConector.create({ data: values });
+        }
 
-        navigate("/Prestamos", { replace: true })
-        window.location.reload()
-      }
-    } else {
-      toast.error("Upss error al registrar prestamo");
+        console.log('API response:', res);
+
+        if (res) {
+            if ('error' in res) {
+                console.error('API error response:', res.error);
+                toast.error("Error al registrar el préstamo.");
+            } else {
+                toast.success(`Préstamo ${selectedLoan ? "editado" : "registrado"} correctamente.`);
+                reset();
+                setAddedProducts([]);
+                navigate("/Prestamos", { replace: true });
+            }
+        } else {
+            throw new Error('No response from API');
+        }
+    } catch (err) {
+        const error = err as { response?: any; request?: any; message: string };
+        console.error('Unexpected error:', error);
+
+        if (error.response) {
+            console.error('Error response data:', error.response.data);
+            toast.error(`Error del servidor: ${error.response.data.message || "Error desconocido"}`);
+        } else if (error.request) {
+            console.error('No response received:', error.request);
+            toast.error("No se recibió respuesta del servidor. Verifica tu conexión.");
+        } else {
+            console.error('Error setting up request:', error.message);
+            toast.error("Error al procesar la solicitud. Verifica la configuración.");
+        }
+    } finally {
+        setActive(false);
     }
-
-    setActive(false);
-  };
+};
 
   const getProduct = useCallback(async () => {
     const res = (await ItemsApiConector.get({ pagination: { page: 1, pageSize: 30000 } }))?.data || [];
@@ -195,23 +183,26 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
 
   useEffect(() => {
     if (selectedLoan && products) {
+      console.log('Selected loan details:', selectedLoan);
+      
       setAddedProducts(selectedLoan.detail.map(i => ({
         item: products?.find((p) => p._id === i.item)?.name || "Item no encontrado",
         quantity: i.quantity,
-      })))
-
-      if (selectedLoan.contract.link && selectedLoan.contract.validUntil) {
-        setValue('contract.link', selectedLoan.contract.link)
-        setValue('contract.validUntil', new Date(selectedLoan.contract.validUntil || "").toISOString().split("T")[0])
-      }
-
-      if (selectedLoan.comment) {
-        setValue('comment', selectedLoan.comment)
-      }
-      setLoading(false)
+      })));
+  
+      // Ensure validUntil is always a string
+      setValue('contract', {
+        link: selectedLoan.contract?.link || null,
+        validUntil: selectedLoan.contract?.validUntil 
+          ? new Date(selectedLoan.contract.validUntil).toISOString().split("T")[0]
+          : ""
+      });
+  
+      setValue('comment', selectedLoan.comment || '');
+      setLoading(false);
     }
-  }, [selectedLoan, products, setValue, setLoading])
-
+  }, [selectedLoan, products, setValue, setLoading]);
+  
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -389,7 +380,11 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
 
         <button
           type="submit"
-          disabled={addedProducts.length === 0 || ((!!watch('contract.validUntil') && !watch('contract.link'))) || ((!watch('contract.validUntil') && !!watch('contract.link')))}
+          disabled={
+            addedProducts.length === 0 || 
+            ((!!watch('contract.validUntil') && !watch('contract.link')) || 
+            (!watch('contract.validUntil') && !!watch('contract.link')))
+          }
           className="disabled:bg-gray-400 bg-blue-500 py-2  text-xl px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600 fixed bottom-5 right-5 z-50 p-10 w-2/12"
         >
           {

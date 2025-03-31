@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { OutputItemBody, MatchedElement } from "../../../../../../type/Kardex";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -14,6 +14,14 @@ interface Props {
 const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, inventories }: Props) => {
     const [isOpen, setIsOpen] = useState<boolean>(true)
     const [edit, setEdit] = useState<number>(-1)
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+    const [selectedElementName, setSelectedElementName] = useState<string>("Seleccione uno");
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredElements = elements.filter((row) =>
+        row.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const { register, setValue, formState: { errors, isValid }, getValues, reset } = useForm<OutputItemBody & { element: string }>({
         mode: 'all'
@@ -56,6 +64,12 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
         reset({ element: "", quantity: 0, outputType: "production_delivered" })
     }
 
+    const handleSelectElement = (element: MatchedElement) => {
+        setSelectedElementName(element.name);
+        setIsDropdownOpen(false);
+        setSearchTerm("");
+    };
+
     return (
         <div className="w-full rounded-[15px] shadow dark:shadow-gray-300 p-4">
             <div className={`w-full flex justify-between cursor-pointer ${isOpen ? "border-b-2 pb-4 mb-4" : ""}`} onClick={() => setIsOpen(!isOpen)}>
@@ -97,26 +111,70 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="w-full md:w-1/3 flex flex-col gap-2"
+                                className="w-full md:w-1/3 flex flex-col gap-2 relative"
+                                ref={dropdownRef}
                             >
                                 <label>Item o producto</label>
-                                <select
-                                    {...register("element", {
-                                        required: "Debes seleccionar un elemento"
-                                    })}
-                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-                                >
-                                    <option value={""}>Seleccione uno</option>
-                                    {
-                                        elements.map((row, index) => (
-                                            <option value={row._id} key={index}>
-                                                {row.name}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
+                                <div className="relative">
+                                    <div
+                                        className={`p-2 py-2.5 rounded-md focus:outline-4 bg-main-background outline outline-2 outline-black cursor-pointer flex justify-between items-center`}
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    >
+                                        <span className="truncate">{selectedElementName}</span>
+                                        <i
+                                            className={`fa-solid fa-angle-down transition-transform ml-2 ${
+                                                isDropdownOpen ? "rotate-180" : ""
+                                            }`}
+                                        ></i>
+                                    </div>
+                                    <input
+                                        type="hidden"
+                                        {...register("element", {
+                                            required: "Debes seleccionar un elemento"
+                                        })}
+                                    />
+                                    {isDropdownOpen && (
+                                        <div
+                                            className="absolute z-[9999] mt-1 bg-main-background border border-black rounded-md shadow-lg max-h-60 overflow-y-auto"
+                                            style={{
+                                                position: "fixed",
+                                                top: dropdownRef.current?.getBoundingClientRect().bottom,
+                                                left: dropdownRef.current?.getBoundingClientRect().left,
+                                                width: dropdownRef.current?.offsetWidth,
+                                            }}
+                                        >
+                                            <div className="sticky top-0 bg-main-background p-2 border-b border-black">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="py-1">
+                                                {filteredElements.length > 0 ? (
+                                                    filteredElements.map((element, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="px-4 py-2 cursor-pointer hover:bg-gray-200"
+                                                            onClick={() => handleSelectElement(element)}
+                                                        >
+                                                            {element.name}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-2 text-gray-500">
+                                                        No se encontraron resultados
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                                 {errors.element && (
-                                    <span className="text-red-500 font-normal text-sm font-pricedown">
+                                    <span className="text-red-500 font-normal text-sm">
                                         <i className="fa-solid fa-triangle-exclamation"></i>{" "}
                                         {errors.element.message}
                                     </span>

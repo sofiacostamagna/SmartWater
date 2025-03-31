@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import "./FiltroCuentasPorPagar.css";
 import { CuentasPorPagarContext } from "../CuentasPorPagarContext";
 import { Zone } from "../../../../../../type/City";
@@ -37,11 +37,20 @@ const FiltroCuentasPorPagar = ({
     initialFilters: IExpensesGetParams['filters'];
     isPayment?: boolean;
 }) => {
-    const { register, handleSubmit, setValue } = useForm<IExpenseFilters>({
+    const { register, handleSubmit, setValue, getValues } = useForm<IExpenseFilters>({
         defaultValues: initialState || {},
     });
 
-    const [selectedDists, setSelectedDists] = useState<User[]>([])
+    const [selectedDists, setSelectedDists] = useState<User[]>([]);
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+    const [selectedProviderName, setSelectedProviderName] = useState<string>("Seleccione un proveedor");
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [distributorSearch, setDistributorSearch] = useState<string>("");
+
+    const filteredProviders = providers.filter((provider) =>
+        provider.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     useEffect(() => {
         if (initialFilters) {
@@ -89,6 +98,26 @@ const FiltroCuentasPorPagar = ({
         return result
     };
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    const handleSelectProvider = (provider: Providers) => {
+        setValue("provider", provider._id, { shouldValidate: true });
+        setSelectedProviderName(provider.fullName || "Sin nombre");
+        setIsDropdownOpen(false);
+        setSearchTerm("");
+    };
+
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 flex flex-col gap-2">
             <div className="flex flex-col sm:flex-row mb-4">
@@ -119,86 +148,152 @@ const FiltroCuentasPorPagar = ({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="w-full sm:w-1/2 flex flex-col gap-2 my-4"
+                        className="w-full sm:w-1/2 flex flex-col gap-2 my-4 relative"
+                        ref={dropdownRef}
                     >
                         <label>Proveedor o beneficiario</label>
-                        <select {...register("provider")} className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black">
-                            <option value="">Seleccione un proveedor</option>
-                            {
-                                providers.map((row, index) => (
-                                    <option value={row._id} key={index}>
-                                        {row.fullName || "Sin nombre"}
-                                    </option>
-                                ))
-                            }
-                        </select>
+                        <div
+                            className="p-2 py-2.5 rounded-md bg-main-background outline outline-2 outline-black cursor-pointer flex justify-between items-center"
+                            onClick={() => setIsDropdownOpen((prev) => !prev)}
+                        >
+                            <span className="truncate">{selectedProviderName}</span>
+                            <i
+                                className={`fa-solid fa-angle-down transition-transform ml-2 ${
+                                    isDropdownOpen ? "rotate-180" : ""
+                                }`}
+                            ></i>
+                        </div>
+                        <input
+                            type="hidden"
+                            {...register("provider")}
+                        />
+                        {isDropdownOpen && (
+                            <div
+                                className="absolute z-[9999] mt-1 bg-main-background border border-black rounded-md shadow-lg max-h-60 overflow-y-auto"
+                                style={{
+                                    position: "fixed",
+                                    top: dropdownRef.current?.getBoundingClientRect().bottom,
+                                    left: dropdownRef.current?.getBoundingClientRect().left,
+                                    width: dropdownRef.current?.offsetWidth,
+                                }}
+                            >
+                                <div className="sticky top-0 bg-main-background p-2 border-b border-black">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="py-1">
+                                    {filteredProviders.length > 0 ? (
+                                        filteredProviders.map((provider, index) => (
+                                            <div
+                                                key={index}
+                                                className={`px-4 py-2 cursor-pointer hover:bg-gray-200 ${
+                                                    provider._id === getValues("provider") ? "bg-gray-200 font-medium" : ""
+                                                }`}
+                                                onClick={() => handleSelectProvider(provider)}
+                                            >
+                                                {provider.fullName || "Sin nombre"}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-2 text-gray-500">
+                                            No se encontraron resultados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
 
                     <div className="w-full flex flex-col gap-2 my-6">
                         <label className="font-semibold text-blue_custom">Distribuidores</label>
+                        <input
+                            type="text"
+                            placeholder="Buscar distribuidores..."
+                            value={distributorSearch}
+                            onChange={(e) => setDistributorSearch(e.target.value)}
+                            className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none mb-4"
+                        />
                         <div className="flex flex-wrap gap-x-6 gap-y-4">
-                            {distribuidores.filter(d => d.role === 'user').map((dists, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center gap-3"
-                                >
-                                    <input
-                                        className="input-check accent-blue_custom"
-                                        type="checkbox"
-                                        onChange={() => {
-                                            if (selectedDists.some(s => s._id === dists._id)) {
-                                                setSelectedDists(prev => prev.filter(s => s._id !== dists._id))
-                                            } else {
-                                                setSelectedDists(prev => [...prev, dists])
-                                            }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
-                                        }}
-                                        checked={selectedDists.some(sd => sd._id === dists._id)}
-                                        id={`distrib-${dists._id}`}
-                                    />
-                                    <label
-                                        htmlFor={`distrib-${dists._id}`}
-                                        className="text-sm"
+                            {distribuidores
+                                .filter(d => d.role === 'user' && d.fullName?.toLowerCase().includes(distributorSearch.toLowerCase()))
+                                .map((dists, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-3"
                                     >
-                                        {dists.fullName || "Sin nombre"}
-                                    </label>
-                                </div>
-                            ))}
+                                        <input
+                                            className="input-check accent-blue_custom"
+                                            type="checkbox"
+                                            onChange={() => {
+                                                if (selectedDists.some(s => s._id === dists._id)) {
+                                                    setSelectedDists(prev => prev.filter(s => s._id !== dists._id))
+                                                } else {
+                                                    setSelectedDists(prev => [...prev, dists])
+                                                }
+
+                                                zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
+                                            }}
+                                            checked={selectedDists.some(sd => sd._id === dists._id)}
+                                            id={`distrib-${dists._id}`}
+                                        />
+                                        <label
+                                            htmlFor={`distrib-${dists._id}`}
+                                            className="text-sm"
+                                        >
+                                            {dists.fullName || "Sin nombre"}
+                                        </label>
+                                    </div>
+                                ))}
                         </div>
                         <label className="text-blue_custom mt-2">Administradores</label>
+                        <input
+                            type="text"
+                            placeholder="Buscar administradores..."
+                            value={distributorSearch}
+                            onChange={(e) => setDistributorSearch(e.target.value)}
+                            className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none mb-4"
+                        />
                         <div className="flex flex-wrap gap-x-6 gap-y-4">
-                            {distribuidores.filter(d => d.role === 'admin').map((dists, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center gap-3"
-                                >
-                                    <input
-                                        className="input-check accent-blue_custom"
-                                        type="checkbox"
-                                        onChange={() => {
-                                            if (selectedDists.some(s => s._id === dists._id)) {
-                                                setSelectedDists(prev => prev.filter(s => s._id !== dists._id))
-                                            } else {
-                                                setSelectedDists(prev => [...prev, dists])
-                                            }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
-                                        }}
-                                        checked={selectedDists.some(sd => sd._id === dists._id)}
-                                        id={`distrib-${dists._id}`}
-                                    />
-                                    <label
-                                        htmlFor={`distrib-${dists._id}`}
-                                        className="text-sm"
+                            {distribuidores
+                                .filter(d => d.role === 'admin' && d.fullName?.toLowerCase().includes(distributorSearch.toLowerCase()))
+                                .map((dists, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-3"
                                     >
-                                        {dists.fullName || "Sin nombre"}
-                                    </label>
-                                </div>
-                            ))}
+                                        <input
+                                            className="input-check accent-blue_custom"
+                                            type="checkbox"
+                                            onChange={() => {
+                                                if (selectedDists.some(s => s._id === dists._id)) {
+                                                    setSelectedDists(prev => prev.filter(s => s._id !== dists._id))
+                                                } else {
+                                                    setSelectedDists(prev => [...prev, dists])
+                                                }
+
+                                                zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
+                                            }}
+                                            checked={selectedDists.some(sd => sd._id === dists._id)}
+                                            id={`distrib-${dists._id}`}
+                                        />
+                                        <label
+                                            htmlFor={`distrib-${dists._id}`}
+                                            className="text-sm"
+                                        >
+                                            {dists.fullName || "Sin nombre"}
+                                        </label>
+                                    </div>
+                                ))}
                         </div>
                     </div>
 
+                    {/*
                     <div className="w-full flex flex-col gap-2 mb-8">
                         <label className="font-semibold text-blue_custom">Zonas</label>
                         <div className="flex flex-wrap gap-x-6 gap-y-4">
@@ -226,6 +321,7 @@ const FiltroCuentasPorPagar = ({
                                 ))}
                         </div>
                     </div>
+                    */}
                 </>
             }
 

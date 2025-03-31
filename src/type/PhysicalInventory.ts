@@ -2,7 +2,8 @@ import { Moment } from "moment";
 
 export type PhysicalInitialBalace = {
     user: string;
-    saldosIniciales: PhysicalBalace[]
+    saldosIniciales: PhysicalBalace[];
+    isUnique?: boolean; // Indicates whether a unique record already exists
 }
 
 export type PhysicalBalace = {

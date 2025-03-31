@@ -30,9 +30,9 @@ export interface ILoanBody {
     data: {
         user: string;
         client: string;
-        contract: {
+        contract?: { // Hacer que contract sea opcional
             link: string | null;
-            validUntil: string;
+            validUntil: string | null;
         };
         comment: string;
         detail: {

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo, useState, useRef } from "react";
 import "./FiltroProveedores.css";
 import { ProveedoresContext } from "../ProveedoresContext";
 import { IProvidersGetParams } from "../../../../../../api/types/providers";
@@ -75,6 +75,39 @@ const FiltroProveedores = ({
         return nits.filter((item, index) => nits.indexOf(item) === index)
     }, [providers])
 
+    const [providerSearch, setProviderSearch] = useState("");
+    const [nitSearch, setNitSearch] = useState("");
+
+    const filteredProviders = useMemo(() => {
+        return providers.filter(provider =>
+            (provider.fullName || "Sin nombre").toLowerCase().includes(providerSearch.toLowerCase())
+        );
+    }, [providers, providerSearch]);
+
+    const filteredNITS = useMemo(() => {
+        return NITS.filter(nit => nit.toLowerCase().includes(nitSearch.toLowerCase()));
+    }, [NITS, nitSearch]);
+
+    const [isProviderDropdownOpen, setIsProviderDropdownOpen] = useState(false);
+    const [isNitDropdownOpen, setIsNitDropdownOpen] = useState(false);
+    const providerDropdownRef = useRef<HTMLDivElement>(null);
+    const nitDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [selectedProviderName, setSelectedProviderName] = useState<string>("Seleccione un proveedor");
+    const [selectedNit, setSelectedNit] = useState<string>("Seleccione un NIT");
+
+    const handleSelectProvider = (providerId: string, providerName: string) => {
+        setValue("provider", providerId, { shouldValidate: true });
+        setSelectedProviderName(providerName || "Sin nombre");
+        setIsProviderDropdownOpen(false);
+    };
+
+    const handleSelectNit = (nit: string) => {
+        setValue("nit", nit, { shouldValidate: true });
+        setSelectedNit(nit || "Seleccione un NIT");
+        setIsNitDropdownOpen(false);
+    };
+
     return (
         <>
             <form onSubmit={handleSubmit(onSubmit)} className="p-8 flex flex-col gap-2">
@@ -114,19 +147,60 @@ const FiltroProveedores = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="w-full sm:w-1/2 flex flex-col gap-2"
+                    className="w-full sm:w-1/2 flex flex-col gap-2 relative"
+                    ref={providerDropdownRef}
                 >
                     <label>Proveedor o beneficiario</label>
-                    <select {...register("provider")} className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black">
-                        <option value="">Seleccione un proveedor</option>
-                        {
-                            providers.map((row, index) => (
-                                <option value={row._id} key={index}>
-                                    {row.fullName || "Sin nombre"}
-                                </option>
-                            ))
-                        }
-                    </select>
+                    <div
+                        className={`p-2 py-2.5 rounded-md focus:outline-4 bg-main-background outline outline-2 outline-black cursor-pointer flex justify-between items-center`}
+                        onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)}
+                    >
+                        <span className="truncate">{selectedProviderName}</span>
+                        <i
+                            className={`fa-solid fa-angle-down transition-transform ml-2 ${
+                                isProviderDropdownOpen ? "rotate-180" : ""
+                            }`}
+                        ></i>
+                    </div>
+                    {isProviderDropdownOpen && (
+                        <div
+                            className="absolute z-[9999] mt-1 bg-main-background border border-black rounded-md shadow-lg max-h-60 overflow-y-auto"
+                            style={{
+                                position: "fixed",
+                                top: providerDropdownRef.current?.getBoundingClientRect().bottom,
+                                left: providerDropdownRef.current?.getBoundingClientRect().left,
+                                width: providerDropdownRef.current?.offsetWidth,
+                            }}
+                        >
+                            <div className="sticky top-0 bg-main-background p-2 border-b border-black">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar proveedor..."
+                                    value={providerSearch}
+                                    onChange={(e) => setProviderSearch(e.target.value)}
+                                    className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="py-1">
+                                {filteredProviders.length > 0 ? (
+                                    filteredProviders.map((provider, index) => (
+                                        <div
+                                            key={index}
+                                            className="px-4 py-2 cursor-pointer hover:bg-gray-200"
+                                            onClick={() => handleSelectProvider(provider._id, provider.fullName || "Sin nombre")}
+                                        >
+                                            {provider.fullName || "Sin nombre"}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-2 text-gray-500">
+                                        No se encontraron resultados
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
 
                 <motion.div
@@ -134,19 +208,60 @@ const FiltroProveedores = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="w-full sm:w-1/2 flex flex-col gap-2"
+                    className="w-full sm:w-1/2 flex flex-col gap-2 relative"
+                    ref={nitDropdownRef}
                 >
                     <label>NIT</label>
-                    <select {...register("nit")} className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black">
-                        <option value="">Seleccione un NIT</option>
-                        {
-                            NITS.map((row, index) => (
-                                <option value={row} key={index}>
-                                    {row}
-                                </option>
-                            ))
-                        }
-                    </select>
+                    <div
+                        className={`p-2 py-2.5 rounded-md focus:outline-4 bg-main-background outline outline-2 outline-black cursor-pointer flex justify-between items-center`}
+                        onClick={() => setIsNitDropdownOpen(!isNitDropdownOpen)}
+                    >
+                        <span className="truncate">{selectedNit}</span>
+                        <i
+                            className={`fa-solid fa-angle-down transition-transform ml-2 ${
+                                isNitDropdownOpen ? "rotate-180" : ""
+                            }`}
+                        ></i>
+                    </div>
+                    {isNitDropdownOpen && (
+                        <div
+                            className="absolute z-[9999] mt-1 bg-main-background border border-black rounded-md shadow-lg max-h-60 overflow-y-auto"
+                            style={{
+                                position: "fixed",
+                                top: nitDropdownRef.current?.getBoundingClientRect().bottom,
+                                left: nitDropdownRef.current?.getBoundingClientRect().left,
+                                width: nitDropdownRef.current?.offsetWidth,
+                            }}
+                        >
+                            <div className="sticky top-0 bg-main-background p-2 border-b border-black">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar NIT..."
+                                    value={nitSearch}
+                                    onChange={(e) => setNitSearch(e.target.value)}
+                                    className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="py-1">
+                                {filteredNITS.length > 0 ? (
+                                    filteredNITS.map((nit, index) => (
+                                        <div
+                                            key={index}
+                                            className="px-4 py-2 cursor-pointer hover:bg-gray-200"
+                                            onClick={() => handleSelectNit(nit)}
+                                        >
+                                            {nit}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-2 text-gray-500">
+                                        No se encontraron resultados
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
 
                 <div className="flex justify-between w-full items-center gap-3 px-4">

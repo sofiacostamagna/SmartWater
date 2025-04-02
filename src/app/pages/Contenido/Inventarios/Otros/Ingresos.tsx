@@ -119,31 +119,33 @@ const Ingresos = () => {
                     onSubmit={(entryData: Partial<OtherEntry>) => saveEntry(entryData)} // Crear nueva entrada
                 />
             </Modal>
-
             <Modal
-                isOpen={selectedEntry._id !== "" && showModal}
-                onClose={() => { setSelectedEntry(otroEntry); setShowModal(false); }}
-                className='!w-3/4 md:!w-1/2'
-            >
+    isOpen={!!(selectedEntry && selectedEntry.length > 0 && showModal)} // Convertir a boolean explícitamente
+    onClose={() => { setSelectedEntry(null); setShowModal(false); }} // Usar null para limpiar el estado
+    className='!w-3/4 md:!w-1/2'
+>
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Editar otros ingresos
                 </h2>
                 <OtrosIngresosForm
-                    onCancel={() => { setSelectedEntry(otroEntry); setShowModal(false); }}
+                    onCancel={() => { setSelectedEntry(null); setShowModal(false); }}
                     elements={elements}
-                    initialData={selectedEntry} // Pasamos los datos seleccionados al formulario
-                    onSubmit={(entryData: Partial<OtherEntry>) => saveEntry({ ...entryData, _id: selectedEntry._id || undefined })} // Usar _id para actualizaciones
+                    initialData={selectedEntry ? selectedEntry[0] : otroEntry} // Usar el primer elemento del arreglo o un objeto vacío
+                    onSubmit={(entryData: Partial<OtherEntry>) => saveEntry({ ...entryData, _id: selectedEntry?.[0]?._id || undefined })} // Usar _id del primer elemento
                 />
             </Modal>
 
             <Modal
-                isOpen={selectedEntry._id !== "" && selectedOption}
-                onClose={() => { setSelectedEntry(otroEntry); setSelectedOption(false) }}
+                isOpen={!!(selectedEntry && selectedEntry.length > 0 && selectedOption)} // Convertir a boolean explícitamente
+                onClose={() => { setSelectedEntry(null); setSelectedOption(false); }}
             >
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Otros ingresos
                 </h2>
-                <OtrosIgresosDetails onCancel={() => { setSelectedEntry(otroEntry); setSelectedOption(false) }} elements={elements} />
+                <OtrosIgresosDetails
+                    onCancel={() => { setSelectedEntry(null); setSelectedOption(false); }}
+                    elements={elements}
+                />
             </Modal>
         </>
     )

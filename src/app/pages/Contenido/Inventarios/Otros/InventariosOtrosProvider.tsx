@@ -11,8 +11,8 @@ type InventariosOtrosContextType = {
     setSelectedOption: React.Dispatch<React.SetStateAction<boolean>>;
     showFiltro: boolean;
     setShowFiltro: React.Dispatch<React.SetStateAction<boolean>>;
-    selectedEntry: OtherEntry;
-    setSelectedEntry: React.Dispatch<React.SetStateAction<OtherEntry>>;
+    selectedEntry: OtherEntry[] | null; // Permitir que sea null
+    setSelectedEntry: React.Dispatch<React.SetStateAction<OtherEntry[] | null>>;
     selectedOutput: OtherOutput;
     setSelectedOutput: React.Dispatch<React.SetStateAction<OtherOutput>>;
 };
@@ -51,7 +51,7 @@ const InventariosOtrosProvider = ({ children }: PropsWithChildren) => {
     const [showMiniModal, setShowMiniModal] = useState<boolean>(false);
     const [selectedOption, setSelectedOption] = useState<boolean>(false);
     const [showFiltro, setShowFiltro] = useState<boolean>(false);
-    const [selectedEntry, setSelectedEntry] = useState<OtherEntry>(otroEntry);
+    const [selectedEntry, setSelectedEntry] = useState<OtherEntry[] | null>(null);
     const [selectedOutput, setSelectedOutput] = useState<OtherOutput>(otroOutput);
 
     return (

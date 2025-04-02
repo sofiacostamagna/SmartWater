@@ -28,42 +28,34 @@ const OtrosIgresosDetails = ({ elements, onCancel }: Props) => {
     const report = async () => {
         if (selectedEntry && selectedEntry.length > 0) {
             try {
-                // Combinar todas las filas en una sola tabla
-                const rows = selectedEntry.map((entry) => {
-                    const product = elements.find(e => e.name === entry.elementName)?.name || "Producto desconocido";
-                    const unitMeasure = (elements.find(e => e.name === entry.elementName)?.unitMeasure as UnitMeasure)?.name || "";
-    
-                    return [
-                        formatDateTime(entry.registerDate, 'numeric', '2-digit', '2-digit'),
-                        entry.type === 'production_received' ? "Ingreso de producción" : "Ingreso por ajuste",
-                        product,
-                        `${entry.quantity} ${unitMeasure}`,
-                        entry.code || "Sin código",
-                    ];
+                setLoading(true);
+                
+                // Crear los inputs para la plantilla
+                const inputs = selectedEntry.map((entry) => {
+                    const matchedElement = elements.find(e => e.name === entry.elementName);
+                    const product = matchedElement?.name || "Producto desconocido";
+                    const unitMeasure = (matchedElement?.unitMeasure as UnitMeasure)?.name || "";
+                    
+                    return {
+                        code: JSON.stringify({ code: entry.code || "Sin código" }), // Format as JSON string
+                        date: formatDateTime(entry.registerDate.toString(), 'numeric', '2-digit', '2-digit'),
+                        type: entry.type === 'production_received' ? "production_delivered" : "adjustment_exit",
+                        product: product,
+                        quantity: JSON.stringify({ quantity: entry.quantity.toString(), unit: unitMeasure }), // Format as JSON string
+                        comment: entry.detail || "Sin comentario"
+                    };
                 });
     
-                // Validar que las filas no estén vacías
-                if (!rows || rows.length === 0) {
-                    throw new Error("No hay datos para generar el PDF.");
-                }
-    
-                // Crear los inputs para la plantilla
-                const inputs = [
-                    {
-                        title: "Detalle de Ingresos",
-                        table: {
-                            rows, // Pasar todas las filas combinadas
-                        },
-                    },
-                ];
-    
                 console.log("Datos para PDF:", inputs);
+                console.log("Datos para PDF (debug):", JSON.stringify(inputs, null, 2));
     
                 // Generar el PDF
                 await showGeneratePDF(setLoading, detailsTemplate, inputs);
             } catch (error) {
                 console.error("Error al generar PDF:", error);
-                alert("Error al generar el PDF"); // Mostrar alerta de error
+                alert("Error al generar el PDF: " + (error instanceof Error ? error.message : String(error)));
+            } finally {
+                setLoading(false);
             }
         }
     };
@@ -84,7 +76,7 @@ const OtrosIgresosDetails = ({ elements, onCancel }: Props) => {
                     <div key={index} className="border-b pb-4 mb-4">
                         <p>{formatDateTime(entry.registerDate, 'numeric', '2-digit', '2-digit')}</p>
                         <p><strong>Código:</strong> {entry.code || "Sin código"}</p>
-                        <p><strong>Tipo:</strong> {entry.type === 'production_received' ? `Ingreso de producción` : `Ingreso por ajuste`}</p>
+                        <p><strong>Tipo:</strong> {entry.type === 'production_received' ? 'production_delivered' : 'adjustment_exit'}</p>
                         <p><strong>Producto:</strong> {elements.find(e => e.name === entry.elementName)?.name || "Producto desconocido"}</p>
                         <p><strong>Cantidad:</strong> {entry.quantity.toLocaleString()} {(elements.find(e => e.name === entry.elementName)?.unitMeasure as UnitMeasure)?.name || ""}</p>
 

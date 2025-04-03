@@ -78,18 +78,17 @@ const TableOtrosIngresos = ({ data, className, tableClassName, pageSize, totalRo
         );
     }, [data]);
 
-  // Agrupar filas por código manteniendo la estructura de tipos
-  const groupedData = useMemo(() => {
-    const groups: { [key: string]: OtherEntry[] } = {};
-    data.forEach((entry) => {
-        const code = entry.code || "Sin código";
-        if (!groups[code]) {
-            groups[code] = [];
-        }
-        groups[code].push(entry);
-    });
-    return groups;
-}, [data]);
+    const groupedData = useMemo(() => {
+        const groups: { [key: string]: OtherEntry[] } = {};
+        data.forEach((entry) => {
+            const code = entry.code || "Sin código";
+            if (!groups[code]) {
+                groups[code] = [];
+            }
+            groups[code].push(entry);
+        });
+        return groups;
+    }, [data]);
 
     return (
         <div className={`text-font-color ${className}`}>

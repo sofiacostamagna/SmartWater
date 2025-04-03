@@ -138,7 +138,11 @@ const Salidas = () => {
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Otras salidas
                 </h2>
-                <OtrasSalidasDetails onCancel={() => { setSelectedOutput(otroOutput); setSelectedOption(false) }} elements={elements} />
+                <OtrasSalidasDetails
+                    onCancel={() => { setSelectedOutput(otroOutput); setSelectedOption(false) }}
+                    elements={elements}
+                    allOutputs={currentData} 
+                />
             </Modal>
         </>
     )

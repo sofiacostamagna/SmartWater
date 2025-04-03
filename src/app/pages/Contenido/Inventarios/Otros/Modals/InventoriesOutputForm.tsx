@@ -44,30 +44,34 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
 
     const onSubmit = () => {
         const res: OutputItemBody = {
-            // unitPrice: parseFloat(String(getValues('unitPrice'))),
-            quantity: parseFloat(String(getValues('quantity'))),
-            outputType: getValues('outputType')
-        }
+            quantity: parseFloat(String(getValues("quantity"))),
+            outputType: getValues("outputType"),
+        };
 
-        const elem = getValues('element')
-        const el = elements.find(e => e._id === elem)
+        const elem = getValues("element");
+        const el = elements.find((e) => e._id === elem);
+
+        console.log("Elemento seleccionado:", elem);
+        console.log("Datos del formulario:", res);
 
         if (el?.isProduct) {
-            res.product = elem
+            res.product = elem;
         } else {
-            res.item = elem
+            res.item = elem;
         }
 
-        updateDetails(res, edit)
-        if (edit !== -1) { setEdit(-1) }
-        // reset({ element: "", unitPrice: 0, quantity: 0, inputType: "production_received" })
-        reset({ element: "", quantity: 0, outputType: "production_delivered" })
-    }
+        updateDetails(res, edit);
+        if (edit !== -1) {
+            setEdit(-1);
+        }
+        reset({ element: "", quantity: 0, outputType: "production_delivered" });
+    };
 
     const handleSelectElement = (element: MatchedElement) => {
         setSelectedElementName(element.name);
         setIsDropdownOpen(false);
         setSearchTerm("");
+        setValue("element", element._id, { shouldValidate: true }); // Asegúrate de configurar el valor aquí
     };
 
     return (
@@ -91,9 +95,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                             >
                                 <label>Tipo de salida</label>
                                 <select
-                                    {...register("outputType", {
-                                        required: "Debes seleccionar un tipo"
-                                    })}
+                                    {...register("outputType", { required: "Debes seleccionar un tipo" })}
                                     className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black dark:disabled:bg-zinc-700 disabled:bg-zinc-300"
                                 >
                                     <option value="production_delivered">Salida a producción</option>
@@ -129,9 +131,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                     </div>
                                     <input
                                         type="hidden"
-                                        {...register("element", {
-                                            required: "Debes seleccionar un elemento"
-                                        })}
+                                        {...register("element", { required: "Debes seleccionar un elemento" })}
                                     />
                                     {isDropdownOpen && (
                                         <div
@@ -189,10 +189,14 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                 className="no-spinner"
                                 errors={errors.quantity}
                                 required
-                                containerClassName='flex-1'
+                                containerClassName="flex-1"
                                 validateAmount={(value) => {
-                                    const val = parseFloat(value)
-                                    return val > 0 ? Number.isInteger(val) ? true : "La cantidad debe ser un número entero" : "La cantidad debe ser mayor que 0"
+                                    const val = parseFloat(value);
+                                    return val > 0
+                                        ? Number.isInteger(val)
+                                            ? true
+                                            : "La cantidad debe ser un número entero"
+                                        : "La cantidad debe ser mayor que 0";
                                 }}
                             />
                         </div>
@@ -217,11 +221,9 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                             type="button"
                             onClick={() => onSubmit()}
                             disabled={!isValid}
-                            className="disabled:bg-gray-400 bg-blue-500 py-2  text-sm px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600"
+                            className="disabled:bg-gray-400 bg-blue-500 py-2 text-sm px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600"
                         >
-                            {
-                                edit !== -1 ? "Editar" : "Agregar"
-                            }
+                            {edit !== -1 ? "Editar" : "Agregar"}
                         </button>
                     </div>
 

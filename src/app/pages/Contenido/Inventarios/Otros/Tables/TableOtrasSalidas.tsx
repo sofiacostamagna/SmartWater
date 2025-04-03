@@ -4,6 +4,7 @@ import { formatDateTime } from '../../../../../../utils/helpers'
 import { InventariosOtrosContext } from '../InventariosOtrosProvider'
 import { useGlobalContext } from '../../../../../SmartwaterContext'
 import { OtherOutput } from '../../../../../../type/Kardex'
+import { OtherEntry } from '../../../../../../type/Kardex'
 import { ValuedPhysicalApiConector } from '../../../../../../api/classes/valued-physical'
 
 interface Props {
@@ -22,12 +23,13 @@ const TableOtrasSalidas = ({ data, className, tableClassName, pageSize, totalRow
     // Add currentPage state
     const [currentPage, setCurrentPage] = useState(1);
 
-    const deleteRegistry = useCallback((id: string) => {
+  
+    const deleteRegistry = useCallback((code: string) => {
         toast.error(
             (t) => (
                 <div>
                     <p className="mb-4 text-center text-[#888]">
-                        Se <b>eliminará</b> este registro, <br /> pulsa <b>Proceder</b> para continuar
+                        Se <b>eliminarán</b> todos los registros con el código <b>{code}</b>, <br /> pulsa <b>Proceder</b> para continuar
                     </p>
                     <div className="flex justify-center">
                         <button
@@ -41,32 +43,32 @@ const TableOtrasSalidas = ({ data, className, tableClassName, pageSize, totalRow
                             onClick={async () => {
                                 toast.dismiss(t.id);
 
-                                const response = await ValuedPhysicalApiConector.deleteOther({ entryId: id, type: 'outputs' });
-                                if (!!response) {
-                                    if (response.message) {
-                                        toast.success(response.message, {
-                                            position: "top-center",
-                                            duration: 2000
-                                        });
-                                        window.location.reload();
-                                    } else {
-                                        toast.error("Error al eliminar el registro", {
-                                            position: "top-center",
-                                            duration: 2000
-                                        });
+                                const entriesToDelete = data.filter(entry => entry.code === code);
+
+                                for (const entry of entriesToDelete) {
+                                    if (entry._id) {
+                                        const response = await ValuedPhysicalApiConector.deleteOther({ entryId: entry._id, type: 'outputs' });
+                                        if (!response || !response.message) {
+                                            toast.error(`Error al eliminar el registro con ID ${entry._id}`, {
+                                                position: "top-center",
+                                                duration: 2000
+                                            });
+                                            return;
+                                        }
                                     }
-                                } else {
-                                    toast.error("Error al eliminar el registro", {
-                                        position: "top-center",
-                                        duration: 2000
-                                    });
                                 }
+
+                                toast.success(`Se eliminaron todos los registros con el código ${code}`, {
+                                    position: "top-center",
+                                    duration: 2000
+                                });
+                                window.location.reload();
                             }}
                         >
                             Proceder
                         </button>
                     </div>
-                </div >
+                </div>
             ),
             {
                 className: "shadow-md dark:shadow-slate-400 border border-slate-100 bg-main-background",
@@ -74,20 +76,21 @@ const TableOtrasSalidas = ({ data, className, tableClassName, pageSize, totalRow
                 position: "top-center"
             }
         );
-    }, [])
-
-    // Group rows by code
-    const groupedData = useMemo(() => {
-        const groups: { [key: string]: OtherOutput[] } = {};
-        data.forEach((entry) => {
-            const code = entry.code || "Sin código";
-            if (!groups[code]) {
-                groups[code] = [];
-            }
-            groups[code].push(entry);
-        });
-        return groups;
     }, [data]);
+
+  // Agrupar filas por código manteniendo la estructura de tipos
+  const groupedData = useMemo(() => {
+    const groups: { [key: string]: OtherOutput[] } = {};
+    data.forEach((entry) => {
+        const code = entry.code || "Sin código";
+        if (!groups[code]) {
+            groups[code] = [];
+        }
+        groups[code].push(entry);
+    });
+    return groups;
+}, [data]);
+
 
     return (
         <div className={`text-font-color ${className}`}>
@@ -104,23 +107,25 @@ const TableOtrasSalidas = ({ data, className, tableClassName, pageSize, totalRow
             {/* Grouped Rows */}
             {Object.entries(groupedData).map(([code, entries]) => (
                 <div key={code} className="border-2 border-blue-500 rounded-lg mb-2">
+                    
                     {entries.map((entry, index) => (
                         <div key={entry._id || index} className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1fr] items-center border-b last:border-b-0 p-3 text-sm">
                             <div className="truncate">{entry.registerDate ? formatDateTime(entry.registerDate, 'numeric', '2-digit', '2-digit', true, true) : "N/A"}</div>
                             <div className="truncate">{entry.type === 'production_delivered' ? "De producción" : "Por ajuste"}</div>
-                            <div className="truncate">{code}</div>
+                            <div className="truncate">{entry.code || "Sin código"}</div>
                             <div className="truncate">{entry.detail || "Sin comentario"}</div>
                             <div className="truncate">{entry.quantity.toLocaleString()}</div>
                             <div className="flex justify-end gap-2 mr-2">
-                                <button onClick={() => { setSelectedOutput(entry); setSelectedOption(true) }}>
+                                <button onClick={() => { setSelectedOutput(entry as OtherOutput); setSelectedOption(true); }}>
                                     <i className="fa fa-eye text-blue_bright" aria-hidden="true"></i>
                                 </button>
-                                <button onClick={() => { setSelectedOutput(entry); setShowModal(true) }}>
+                                <button onClick={() => { entry._id && setSelectedOutput(entry); setShowModal(true); }}>
                                     <i className="fa-solid fa-pen-to-square text-blue_bright" aria-hidden="true"></i>
                                 </button>
-                                <button onClick={() => entry._id && deleteRegistry(entry._id)}>
+                                <button onClick={() => deleteRegistry(entry.code)}>
                                     <i className="fa fa-trash text-red-500" aria-hidden="true"></i>
                                 </button>
+                                
                             </div>
                         </div>
                     ))}

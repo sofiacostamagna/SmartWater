@@ -25,7 +25,7 @@ const ShowInitialBalancesModal = ({ elements, onCancel }: Props) => {
                 {
                     title: "Saldos iniciales",
                     field5: "Productos",
-                    date: formatDateTime(selectedBalance.showDate.format("YYYY-MM-DD"), 'numeric', '2-digit', '2-digit'),
+                    date: formatDateTime(selectedBalance.showDate.toISOString(), 'numeric', '2-digit', '2-digit'),
                     code: JSON.stringify({ code: selectedBalance.code }),
                     distribuidor: JSON.stringify({ distribuidor: `${selectedBalance.user.name || "Distribuidor desconocido"} ${selectedBalance.user.isAdmin ? "(Adiministrador)" : ""}` }),
                     table: selectedBalance.saldo.map(s => ([`${s.product ? s.product.name : s.item ? s.item.name : "Producto desconocido"}`, `${s.initialBalance || 0}`]))
@@ -45,7 +45,7 @@ const ShowInitialBalancesModal = ({ elements, onCancel }: Props) => {
             </div>
 
             <div className="mt-14 flex flex-col gap-6">
-                <p>Fecha final: <br />{formatDateTime(selectedBalance.showDate.format("YYYY-MM-DD"), 'numeric', '2-digit', '2-digit')}</p>
+                <p>Fecha final: <br />{formatDateTime(selectedBalance.showDate.toISOString(), 'numeric', '2-digit', '2-digit', false, true)}</p>
                 <p className='-mb-4'>Código: {selectedBalance.code || "Sin código"}</p>
                 <p>Distribuidor: {selectedBalance.user.name || "Distribuidor desconocido"} {selectedBalance.user.isAdmin ? "(Adiministrador)" : ""}</p>
 

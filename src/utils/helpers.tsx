@@ -1,23 +1,24 @@
 import moment from "moment";
 
-export const formatDateTime = (date: string, year: Intl.DateTimeFormatOptions['year'], month: Intl.DateTimeFormatOptions['month'], day: Intl.DateTimeFormatOptions['day'], addTime: boolean = false, keepLocal: boolean = false) => {       //Formatea la fecha
-    let dateToFormat: Date
-    if (keepLocal) {
-        dateToFormat = moment.utc(date).local(true).toDate();
-    } else {
-        dateToFormat = new Date(date);
-    }
+export const formatDateTime = (
+    date: string,
+    year: Intl.DateTimeFormatOptions['year'],
+    month: Intl.DateTimeFormatOptions['month'],
+    day: Intl.DateTimeFormatOptions['day'],
+    addTime: boolean = false,
+    keepLocal: boolean = false
+) => {
+    const dateToFormat = keepLocal ? moment.utc(date).local().toDate() : new Date(date);
 
     const options: Intl.DateTimeFormatOptions = { year, month, day };
 
     if (addTime) {
-        options.hour12 = false
-        options.hour = '2-digit'
-        options.minute = '2-digit'
+        options.hour12 = false;
+        options.hour = '2-digit';
+        options.minute = '2-digit';
     }
 
-    const dateFormated = dateToFormat.toLocaleDateString('es-AR', options);
-    return dateFormated;
+    return dateToFormat.toLocaleDateString('es-AR', options);
 };
 
 export const convertTo12HourIntl = (time24: string) => {

@@ -75,7 +75,7 @@ const TableFisicosReportes = ({ data, className, distribuidores }: Props) => {
         {
             name: "Fecha",
             width: "17.5%",
-            selector: row => (row.registerDate ? formatDateTime(row.registerDate, 'numeric', '2-digit', '2-digit', true, true) : "N/A"),
+            selector: row => (row.registerDate ? formatDateTime(row.registerDate, 'numeric', '2-digit', '2-digit', false, true) : "N/A"),
         },
         // {
         //     name: "Al",

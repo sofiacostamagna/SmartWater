@@ -10,6 +10,17 @@ import { ExpensesApiConector } from "../../../../../../api/classes";
 import { Option } from "../../../../components/Option/Option";
 import { formatDateTime } from "../../../../../../utils/helpers";
 
+// Función para generar el código de egreso
+const generateExpenseCode = (expense: Expense): string => {
+  const date = new Date(expense.created);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes con dos dígitos
+  const day = String(date.getDate()).padStart(2, '0'); // Día con dos dígitos
+  const shortId = expense._id.slice(-4); // Últimos 4 caracteres del _id
+
+  return `EG-${year}${month}${day}-${shortId}`;
+};
+
 const CuadroRegistrarEyG = ({
   expense,
   users,
@@ -156,6 +167,12 @@ const CuadroRegistrarEyG = ({
         </div>
 
         <div className="flex flex-col w-full gap-2">
+          {/* Código de egreso */}
+          <div className="RegistrosEyG-Cuadro1-text">
+            <span>Código de egreso</span>
+            <span>{generateExpenseCode(expense)}</span>
+          </div>
+
           <div className="RegistrosEyG-Cuadro1-text">
             <span>Tipo de gasto</span>
             <span>
@@ -177,7 +194,7 @@ const CuadroRegistrarEyG = ({
             <span>{expense.hasInVoice ? `Fac-${expense.documentNumber}` : expense.hasReceipt ? `Rec-${expense.documentNumber}` : "Sin documento"}</span>
           </div>
           <div className="RegistrosEyG-Cuadro1-text flex flex-col gap-4">
-            <span>Comenatrios</span>
+            <span>Comentarios</span>
             <div className="CuadroRegistrarEyG-comentario">
               <span>{expense.comment || "Sin comentarios"}</span>
             </div>

@@ -129,6 +129,10 @@ const CuadroProveedor = ({ provider }: { provider: Providers }) => {
           </div>
         </div>
         <div className="w-[calc(100%_-_30px)] flex flex-col gap-1 text-[12px]">
+        <div className="flex gap-2">
+                <span className="">Registrado el:</span>
+                <span className="text-blue_custom">{new Date(provider.created).toLocaleDateString()}</span>
+              </div>
           <div className="flex gap-2">
             <span className="">Correo:</span>
             <span className="text-blue_custom"><a href={`mailto:${provider.email}`}>{provider.email}</a></span>

@@ -8,6 +8,7 @@ const socket = io(process.env.REACT_APP_API_HEROKU)
 
 type NotificationsContextType = {
     notifications: Notification[];
+    setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>; // Add setNotifications
     markAllAsRead: () => void;
     markOneAsRead: (id: string) => void;
     isOpenNotifications: boolean;
@@ -17,6 +18,7 @@ type NotificationsContextType = {
 
 const NotificationsContext = createContext<NotificationsContextType>({
     notifications: [],
+    setNotifications: () => {}, // Default no-op function
     markAllAsRead() { },
     markOneAsRead(id: string) { },
     isOpenNotifications: false,
@@ -63,6 +65,7 @@ const NotificacionesProvider = ({ children }: PropsWithChildren) => {
         <NotificationsContext.Provider
             value={{
                 notifications,
+                setNotifications, // Provide setNotifications to the context
                 markAllAsRead() {
                     setNotifications((prev) => prev.map(p => ({ ...p, read: true })))
                 },

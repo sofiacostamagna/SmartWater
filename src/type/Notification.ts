@@ -12,7 +12,12 @@ export type Notification = {
     read: boolean,
     data: ClaimData | DisconnectedData,
     created: string,
-    updated: string
+    updated: string,
+    resolve?: boolean, // Indicates if the notification is resolved
+    deactivated?: boolean, // Indicates if the notification is deleted
+    from?: "smartApp" | "system", // Indicates the source of the notification
+    client?: string, // Reference to the client (if applicable)
+    loan?: string // Reference to the loan (if applicable)
 }
 
 export interface ClaimData {

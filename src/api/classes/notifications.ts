@@ -35,4 +35,13 @@ export abstract class NotificationsApiConector {
             return null
         }
     }
+
+    static async delete(notificationId: string): Promise<{ mensaje: string } | null> {
+        try {
+            const res = await ApiConnector.getInstance().delete(`${this.root_path}/${notificationId}/delete`);
+            return res.data;
+        } catch (error) {
+            return null;
+        }
+    }
 }

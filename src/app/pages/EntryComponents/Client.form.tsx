@@ -223,12 +223,14 @@ const ClientForm = ({
   const address = watch("address")
   useEffect(() => {
     if (address) {
-      const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(address)}`
-      setGoogleMapsUrl(newAddress)
-      setValue('linkAddress', newAddress)
+      const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
+      setGoogleMapsUrl(newAddress);
+      setValue('linkAddress', newAddress);
     } else {
-      setGoogleMapsUrl("https://www.google.com/maps?q")
-      setValue('linkAddress', "")
+      setGoogleMapsUrl("https://www.google.com/maps?q");
+      setValue('linkAddress', "");
+      setValue('location.latitude', ""); 
+      setValue('location.longitude', ""); 
     }
   }, [address, setValue])
 
@@ -391,8 +393,9 @@ const ClientForm = ({
             }
           }}
         />
-
-        <div>
+      
+  
+      <div>
           <Input
             label="Dirección"
             name="address"
@@ -544,41 +547,65 @@ const ClientForm = ({
           errors={errors.storeImage}
           required={!isJeshua}
         />
-        <div className="w-full col-span-2 max-sm:col-span-1 relative">
-          <h1 className="text-sm font-medium">
-            Selecciona una ubicación en el mapa
-          </h1>
-          <GoogleMapWithSelection
-            visible={isOpen}
-            disable={mapinteration}
-            linkAddress={watch("linkAddress")}
-            latitude={Number(watch("location.latitude"))}
-            longitude={Number(watch("location.longitude"))}
-            onChange={(coordinates: { lat: number; lng: number }) => {
-              setValue("location.latitude", `${coordinates.lat}`, { shouldValidate: true });
-              setValue("location.longitude", `${coordinates.lng}`, { shouldValidate: true });
-            }}
+
+                {/* Address and Map Section */}
+      <div className="w-full col-span-2 max-sm:col-span-1 relative">
+       
+        <div className="mb-4">
+          <Input
+            label="Dirección"
+            name="address"
+            register={register}
+            errors={errors.address}
+            icon={<i className="fa-solid fa-location-dot text-2xl undefined"></i>}
           />
-
-          <input type="hidden" {...register('location.latitude', { required: true })} className="bg-transparent" />
-          <input type="hidden" {...register('location.longitude', { required: true })} className="bg-transparent" />
-
-          <button
-            type="button"
-            onClick={() => setMapinteration(!mapinteration)}
-            className="absolute bg-blue-500 text-white py-2 px-8 top-7 rounded-md translate-y-0.5 z-[10] right-14"
-          >
-            {mapinteration ? "Editar" : "Bloquear"}
-          </button>
-
-          {
-            (errors.location?.latitude || errors.location?.longitude) &&
-            <span className="text-red-500 font-normal text-sm">
-              <i className="fa-solid fa-triangle-exclamation"></i>{" "}
-              Ubicación no definida
-            </span>
-          }
+     
         </div>
+
+        <div className="w-full col-span-2 max-sm:col-span-1 relative mb-4">
+  <h1 className="text-sm font-medium">
+    Selecciona una ubicación en el mapa
+  </h1>
+  <GoogleMapWithSelection
+    visible={isOpen}
+    disable={mapinteration}
+    linkAddress={watch("linkAddress")}
+    latitude={Number(watch("location.latitude"))}
+    longitude={Number(watch("location.longitude"))}
+    onChange={(coordinates: { lat: number; lng: number }) => {
+      setValue("location.latitude", `${coordinates.lat}`);
+      setValue("location.longitude", `${coordinates.lng}`);
+    }}
+  />
+  <input
+    type="hidden"
+    {...register('location.latitude', { required: true })}
+    className="bg-transparent"
+  />
+  <input
+    type="hidden"
+    {...register('location.longitude', { required: true })}
+    className="bg-transparent"
+  />
+  <div className="mt-2 text-sm text-gray-800 flex gap-4">
+    <span>{watch("location.latitude") || ""}</span>
+    <span>{watch("location.longitude") || ""}</span>
+  </div>
+  <button
+    type="button"
+    onClick={() => setMapinteration(!mapinteration)}
+    className="absolute bg-blue-500 text-white py-2 px-8 top-7 rounded-md translate-y-0.5 z-[10] right-14"
+  >
+    {mapinteration ? "Editar" : "Bloquear"}
+  </button>
+  {
+    (errors.location?.latitude || errors.location?.longitude) &&
+    <span className="text-red-500 font-normal text-sm">
+      <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+      Ubicación no definida
+    </span>
+  }
+</div>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -648,6 +675,8 @@ const ClientForm = ({
             </div>
           </div>
         </motion.div>
+
+    
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -695,6 +724,9 @@ const ClientForm = ({
           </div>
         </motion.div>
       </div>
+      </div>
+  
+
       <div className="w-full  sticky bottom-0 bg-main-background h-full z-50">
         <div className="py-4 flex flex-row gap-4 items-center justify-center px-6">
           <button
@@ -715,7 +747,8 @@ const ClientForm = ({
                 </span>
             }
           </button>
-        </div>
+    
+      </div>
       </div>
     </form>
   );

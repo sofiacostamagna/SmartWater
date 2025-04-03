@@ -10,7 +10,8 @@ import moment from "moment";
 interface IOrderFilters {
     fromDate: string | null;
     toDate: string | null;
-    attendedDate: string | null;
+    attendedDateInit: string | null;
+    attendedDateEnd: string | null;
     fromDateDeliver: string | null;
     toDateDeliver: string | null;
 
@@ -21,8 +22,9 @@ interface IOrderFilters {
 const initialState: IOrderFilters = {
     fromDate: null,
     toDate: null,
+    attendedDateInit: null,
+    attendedDateEnd: null,
     fromDateDeliver: null,
-    attendedDate: null,
     toDateDeliver: null,
     zones: {},
     distrib: {},
@@ -55,8 +57,11 @@ const FiltroPedidos: FC<{
             if (initialFilters.deliverDateEnd) {
                 setValue('toDateDeliver', initialFilters.deliverDateEnd, { shouldValidate: true })
             }
-            if (initialFilters.attendedDate) {
-                setValue('attendedDate', initialFilters.attendedDate, { shouldValidate: true })
+            if (initialFilters.attendedDateInit) {
+                setValue('attendedDateInit', initialFilters.attendedDateInit, { shouldValidate: true })
+            }
+            if (initialFilters.attendedDateEnd) {
+                setValue('attendedDateEnd', initialFilters.attendedDateEnd, { shouldValidate: true })
             }
             if (initialFilters.zone) {
                 initialFilters.zone.split(",").forEach((z) => {
@@ -91,7 +96,8 @@ const FiltroPedidos: FC<{
         if (filters.toDate) { result.finalDate = filters.toDate.toString() }
         if (filters.fromDateDeliver) { result.deliverDateInit = filters.fromDateDeliver.toString() }
         if (filters.toDateDeliver) { result.deliverDateEnd = filters.toDateDeliver.toString() }
-        if (filters.attendedDate) { result.attendedDate = filters.attendedDate.toString() }
+        if (filters.attendedDateInit) { result.attendedDateInit = filters.attendedDateInit.toString() }
+        if (filters.attendedDateEnd) { result.attendedDateEnd = filters.attendedDateEnd.toString() }
 
         if (filters.zones) {
             const zones = Object.values(filters.zones).filter(z => !!z).join(',')
@@ -117,16 +123,16 @@ const FiltroPedidos: FC<{
                 <div className="flex flex-col sm:flex-row mb-4">
                     <div className="flex-1">
                         <div className="FiltroClientes-Fechastitulo mb-2">
-                            <span className="text-blue_custom font-semibold">Fechas</span>
+                            <span className="text-blue_custom font-semibold">Fechas de Atención</span>
                         </div>
                         <div className="flex gap-3 flex-wrap">
                             <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
                                 <span className="text-left text-sm">De</span>
                                 <img src="/desde.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
                                 <input
-                                    max={watch('toDate')?.toString() || moment().format("YYYY-MM-DD")}
+                                    max={watch('attendedDateEnd')?.toString() || moment().format("YYYY-MM-DD")}
                                     type="date"
-                                    {...register("fromDate")}
+                                    {...register("attendedDateInit")}
                                     className="border-0 rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
                                 />
                             </div>
@@ -134,11 +140,11 @@ const FiltroPedidos: FC<{
                                 <span className="text-left text-sm">A</span>
                                 <img src="/hasta.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
                                 <input
-                                    min={watch('fromDate')?.toString()}
+                                    min={watch('attendedDateInit')?.toString()}
                                     max={moment().format("YYYY-MM-DD")}
                                     type="date"
-                                    {...register("toDate")}
-                                    className="border-0  rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
+                                    {...register("attendedDateEnd")}
+                                    className="border-0 rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
                                 />
                             </div>
                         </div>
@@ -149,7 +155,7 @@ const FiltroPedidos: FC<{
                     <div className="flex flex-col sm:flex-row mb-4">
                         <div className="flex-1">
                             <div className="FiltroClientes-Fechastitulo mb-2">
-                                <span className="text-blue_custom font-semibold">Fecha de entrega</span>
+                                <span className="text-blue_custom font-semibold">Fecha de entrega programada</span>
                             </div>
                             <div className="flex gap-3 flex-wrap">
                                 <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
@@ -176,28 +182,37 @@ const FiltroPedidos: FC<{
                         </div>
                     </div>
                 }
-                {
-                    isAttended &&
-                    <div className="flex flex-col sm:flex-row mb-4">
-                        <div className="flex-1">
-                            <div className="FiltroClientes-Fechastitulo mb-2">
-                                <span className="text-blue_custom font-semibold">Fecha de atención</span>
+
+                <div className="flex flex-col sm:flex-row mb-4">
+                    <div className="flex-1">
+                        <div className="FiltroClientes-Fechastitulo mb-2">
+                            <span className="text-blue_custom font-semibold">Fechas de entrega programada</span>
+                        </div>
+                        <div className="flex gap-3 flex-wrap">
+                            <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
+                                <span className="text-left text-sm">De</span>
+                                <img src="/desde.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
+                                <input
+                                    max={watch('toDate')?.toString() || moment().format("YYYY-MM-DD")}
+                                    type="date"
+                                    {...register("fromDate")}
+                                    className="border-0 rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
+                                />
                             </div>
-                            <div className="flex gap-3 flex-wrap">
-                                <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
-                                    <span className="text-left text-sm">El</span>
-                                    <img src="/hasta.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
-                                    <input
-                                        max={moment().format("YYYY-MM-DD")}
-                                        type="date"
-                                        {...register("attendedDate")}
-                                        className="border-0 rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
-                                    />
-                                </div>
+                            <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
+                                <span className="text-left text-sm">A</span>
+                                <img src="/hasta.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
+                                <input
+                                    min={watch('fromDate')?.toString()}
+                                    max={moment().format("YYYY-MM-DD")}
+                                    type="date"
+                                    {...register("toDate")}
+                                    className="border-0  rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
+                                />
                             </div>
                         </div>
                     </div>
-                }
+                </div>
 
                 <div className="w-full flex flex-col gap-2 my-6">
                     <label className="font-semibold text-blue_custom">Distribuidores</label>

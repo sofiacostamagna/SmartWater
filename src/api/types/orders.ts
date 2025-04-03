@@ -10,6 +10,8 @@ export interface IOrdersGetParams extends Search {
         district?: string;
         attended?: boolean;
         attendedDate?: string;
+        attendedDateInit?: string; // Added
+        attendedDateEnd?: string;  // Added
         deliverDateInit?: string;
         deliverDateEnd?: string;
         initialDate?: string;

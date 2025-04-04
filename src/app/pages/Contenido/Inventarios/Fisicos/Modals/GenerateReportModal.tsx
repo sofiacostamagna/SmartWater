@@ -11,6 +11,23 @@ interface Props {
     onCancel: VoidFunction
 }
 
+interface InventoryItem {
+    name?: string;
+    initialBalance?: number;
+    stockSale?: number;
+    stockLoan?: number;
+    returnClient?: number;
+    returnDistributor?: number;
+    providerPurchase?: number;
+    deliveredDistributor?: number;
+    productionDelivered?: number;
+    realBalance?: number;
+    diffReportDistrib?: number;
+    ssg?: number;
+    item?: string;
+    product?: string;
+}
+
 const GenerateReportModal = ({ onCancel }: Props) => {
     const [active, setActive] = useState(false);
     const { selectedInventario } = useContext(InventariosFisicosContext)
@@ -70,56 +87,114 @@ const GenerateReportModal = ({ onCancel }: Props) => {
         }
     }
 
+    const isAdmin = selectedInventario[0]?.role === 'admin';
+
     return (
         <form
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col gap-6 justify-center items-center w-full p-6"
         >
             <div className="text-font-color w-full border !border-font-color/20 !rounded-[10px]">
-                <DataTable columns={[
-                    {
-                        name: "Producto",
-                        width: "25%",
-                        selector: row => row.name || "Producto desconocido",
-                    },
-                    {
-                        name: "Saldos iniciales",
-                        width: "12.5%",
-                        selector: row => row.initialBalance || 0,
-                    },
-                    {
-                        name: "Stock vendidos",
-                        selector: row => row.stockSale,
-                    },
-                    {
-                        name: "Stock prestado",
-                        selector: row => row.stockLoan,
-                    },
-                    {
-                        name: "Devuelto",
-                        selector: row => (row.returnClient || 0) + (row.returnDistributor || 0),
-                    },
-                    {
-                        name: "Saldo sistema",
-                        selector: row => row.ssg || 0,
-                    },
-                    {
-                        name: "Saldo distribuidor",
-                        cell: row => <Input
-                            validateAmount={(val: number) => val >= 0 ? true : ""}
-                            numericalOnly
-                            name={row.product || row.item || ""}
-                            register={register}
-                            required
-                            className='outline-dashed !outline-1'
-                        />,
-                    },
-                    {
-                        name: "Diferencia",
-                        selector: row => (row.ssg || 0) - watch(row.product || row.item || ''),
-                    },
-                ]} data={selectedInventario} className='no-inner-border'
-                    noDataComponent={<div className="min-h-[150px] flex items-center justify-center">Sin registros</div>} />
+                <DataTable
+                    columns={[
+                        {
+                            name: "Producto",
+                            width: "20%",
+                            selector: (row: InventoryItem) => row.name || "Producto desconocido",
+                        },
+                        {
+                            name: "Saldos iniciales",
+                            width: "10%",
+                            selector: (row: InventoryItem) => row.initialBalance ?? 0,
+                        },
+                        {
+                            name: "Stock vendidos",
+                            width: "10%",
+                            selector: (row: InventoryItem) => row.stockSale ?? 0,
+                        },
+                        {
+                            name: "Stock prestado",
+                            width: "10%",
+                            selector: (row: InventoryItem) => row.stockLoan ?? 0,
+                        },
+                        {
+                            name: "Devuelto",
+                            width: "10%",
+                            selector: (row: InventoryItem) => (row.returnClient ?? 0) + (row.returnDistributor ?? 0),
+                        },
+                        ...(isAdmin ? [
+                            {
+                                name: "Compra proveedores",
+                                width: "10%",
+                                selector: (row: InventoryItem) => row.providerPurchase ?? 0,
+                            },
+                            {
+                                name: "Entregado distribuidor",
+                                width: "10%",
+                                selector: (row: InventoryItem) => row.deliveredDistributor ?? 0,
+                            },
+                            {
+                                name: "Entrega producción",
+                                width: "10%",
+                                selector: (row: InventoryItem) => row.productionDelivered ?? 0,
+                            },
+                            {
+                                name: "Saldo real",
+                                width: "10%",
+                                selector: (row: InventoryItem) => row.realBalance ?? 0,
+                            },
+                            {
+                                name: "Diferencia reporte distribuidor",
+                                width: "10%",
+                                selector: (row: InventoryItem) => row.diffReportDistrib ?? 0,
+                            },
+                        ] : []),
+                        {
+                            name: "Saldo sistema",
+                            width: "10%",
+                            selector: (row: InventoryItem) => row.ssg ?? 0,
+                        },
+                        {
+                            name: "Saldo distribuidor",
+                            width: "10%",
+                            cell: (row: InventoryItem) => <Input
+                                validateAmount={(val: number) => val >= 0 ? true : ""}
+                                numericalOnly
+                                name={row.product || row.item || ""}
+                                register={register}
+                                required
+                                className='outline-dashed !outline-1'
+                            />,
+                        },
+                        {
+                            name: "Diferencia",
+                            width: "10%",
+                            selector: (row: InventoryItem) => (row.ssg ?? 0) - watch(row.product || row.item || ''),
+                        },
+                    ]}
+                    data={selectedInventario}
+                    className="no-inner-border w-full"
+                    customStyles={{
+                        headRow: {
+                            style: {
+                                borderBottomWidth: '2px',
+                                borderBottomColor: '#ccc',
+                                borderBottomStyle: 'solid',
+                                width: '100%', 
+                            },
+                        },
+                        table: {
+                            style: {
+                                width: '100%',
+                            },
+                        },
+                    }}
+                    noDataComponent={
+                        <div className="min-h-[150px] flex items-center justify-center">
+                            Sin registros
+                        </div>
+                    }
+                />
             </div>
 
             <div className="w-full  sticky bottom-0 bg-main-background h-full z-50">

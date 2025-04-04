@@ -59,35 +59,79 @@ const RegistroEyG = () => {
 
     const filterRef = useRef<IFiltroPaginadoReference>(null)
 
-    const getSales = useCallback(async () => {
-        setLoading(true)
+    useEffect(() => {
+        const getData = setTimeout(() => {
+            if (searchParam && searchParam.trim() !== "") {
+                const filteredUsers = users.filter(u =>
+                    u.fullName?.toLowerCase().includes(searchParam.trim().toLowerCase())
+                );
 
-        const promises: Promise<{ data: Expense[] } & QueryMetadata | null>[] = []
+                if (filteredUsers.length > 0) {
+                    setUsersFilter(filteredUsers.map(u => u._id)); // Actualiza el filtro con los IDs de los usuarios encontrados
+                } else {
+                    setUsersFilter([]); // Si no hay coincidencias, establece un array vacío
+                }
+                setPage(1); // Reinicia la paginación
+            } else {
+                setUsersFilter(null); // Si no hay búsqueda, elimina el filtro
+            }
+        }, 800);
+
+        return () => clearTimeout(getData); // Limpia el timeout para evitar conflictos
+    }, [searchParam, users]);
+
+    const getSales = useCallback(async () => {
+        setLoading(true);
+
+        const promises: Promise<{ data: Expense[] } & QueryMetadata | null>[] = [];
 
         if (usersFilter) {
-            promises.push(ExpensesApiConector.get({ pagination: { page: 1, pageSize: 30000, sort }, filters: { ...savedFilters, user: usersFilter.join(",") } }))
+            promises.push(
+                ExpensesApiConector.get({
+                    pagination: { page: 1, pageSize: 30000, sort },
+                    filters: { ...savedFilters, user: usersFilter.join(",") }, // Aplica el filtro de usuarios
+                })
+            );
         } else {
-            promises.push(ExpensesApiConector.get({ pagination: { page: 1, pageSize: 30000, sort }, filters: savedFilters }))
+            promises.push(
+                ExpensesApiConector.get({
+                    pagination: { page: 1, pageSize: 30000, sort },
+                    filters: savedFilters,
+                })
+            );
         }
 
-        const responses = await Promise.all(promises)
-        const datSales: Expense[] = []
-        let totalcount: number = 0
-        responses.forEach(r => {
-            datSales.push(...(r?.data || []))
-            totalcount += r?.metadata.totalCount || 0
-        })
+        const responses = await Promise.all(promises);
+        const datSales: Expense[] = [];
+        let totalcount: number = 0;
+
+        responses.forEach((r) => {
+            datSales.push(...(r?.data || []));
+            totalcount += r?.metadata.totalCount || 0;
+        });
 
         setItems(datSales);
-        setTotalPages(Math.ceil(totalcount / ITEMS_PER_PAGE)); // Update total pages
-        setLoading(false)
+        setTotalPages(Math.ceil(totalcount / ITEMS_PER_PAGE)); // Actualiza el total de páginas
+        setLoading(false);
     }, [setLoading, savedFilters, sort, usersFilter]);
 
     useEffect(() => {
-        if (items) {
-            setItemsToShow(items.slice((page - 1) * ITEMS_PER_PAGE, (page * ITEMS_PER_PAGE)))
-        }
-    }, [items, page])
+        const getData = setTimeout(() => {
+            if (searchParam && searchParam.trim() !== "") {
+                const filteredItems = items.filter(expense =>
+                    expense.provider?.fullName?.toLowerCase().includes(searchParam.trim().toLowerCase())
+                );
+
+                setItemsToShow(filteredItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE));
+                setTotalPages(Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+            } else {
+                setItemsToShow(items.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE));
+                setTotalPages(Math.ceil(items.length / ITEMS_PER_PAGE));
+            }
+        }, 800);
+
+        return () => clearTimeout(getData); // Limpia el timeout para evitar conflictos
+    }, [searchParam, items, page]);
 
     const orderArray = (orden: string) => {
         if (orden === "new") {
@@ -96,24 +140,6 @@ const RegistroEyG = () => {
             setSort('asc')
         }
     };
-
-    useEffect(() => {
-        const getData = setTimeout(() => {
-            if (searchParam && searchParam.trim() !== "") {
-                const clients = users.filter(u => u.fullName?.toLowerCase().includes(searchParam.trim().toLowerCase()))
-
-                if (clients.length > 0) {
-                    setUsersFilter(clients.map(c => c._id))
-                } else {
-                    setUsersFilter([])
-                }
-                setPage(1);
-            } else {
-                setUsersFilter(null)
-            }
-        }, 800);
-        return () => clearTimeout(getData)
-    }, [searchParam, users])
 
     useEffect(() => {
         const fetchZones = async () => {
@@ -265,7 +291,7 @@ const RegistroEyG = () => {
                     Detalles de egreso
                 </h2>
                 <CuadroEgresoDetails onCancel={() => { setSelectedExpense(expense); setShowMiniModal(false) }} />
-            </Modal> F
+            </Modal> 
         </>
     )
 }

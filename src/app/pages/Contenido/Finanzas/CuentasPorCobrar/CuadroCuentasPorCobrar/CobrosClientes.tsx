@@ -50,6 +50,16 @@ const CobrosClientes = ({
             </span>
           </div>
         </div>
+        <div className="flex justify-between items-center mt-2">
+          <div className="CuadroVentaCliente-text">
+            <span>
+              Método de pago:{" "}
+              <span className="text-blue_custom">
+                {bill.cashPayment ? "Efectivo" : "Cuenta Corriente"}
+              </span>
+            </span>
+          </div>
+        </div>
       </div>
     </>
   );

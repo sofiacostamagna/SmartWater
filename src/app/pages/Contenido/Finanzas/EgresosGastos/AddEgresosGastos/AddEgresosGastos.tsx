@@ -27,7 +27,9 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid }, watch, setValue
+    formState: { errors, isValid }, 
+    watch, 
+    setValue
   } = useForm<IExpenseDetailsBody['data']>({
     defaultValues: selectedExpense._id !== "" ? {
       accountEntry: selectedExpense.accountEntry._id,
@@ -38,10 +40,13 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
       hasInVoice: selectedExpense.hasInVoice,
       hasReceipt: selectedExpense.hasReceipt,
       paymentMethodCurrentAccount: selectedExpense.paymentMethodCurrentAccount,
-      provider: selectedExpense.provider?._id || ""
+      provider: selectedExpense.provider?._id || "",
+      // Usamos registerDate si existe, o la fecha actual si no
+      registerDate: (selectedExpense as any).registerDate || moment.tz("America/La_Paz").format("YYYY-MM-DDTHH:mm")
     } : {
       creditBuy: false,
-      paymentMethodCurrentAccount: false
+      paymentMethodCurrentAccount: false,
+      registerDate: moment.tz("America/La_Paz").format("YYYY-MM-DDTHH:mm")
     },
     mode: 'all'
   });
@@ -76,7 +81,7 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
             ...i,
             inputImport: i.inputImport * i.quantity
           })),
-          registerDate: moment.tz("America/La_Paz").format("YYYY-MM-DDTHH:mm:ss")
+          registerDate: data.registerDate || moment.tz("America/La_Paz").format("YYYY-MM-DDTHH:mm:ss")
         }
       })
     }
@@ -182,6 +187,18 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-6 justify-center items-center w-full p-6"
     >
+      {/* Nuevo campo de fecha */}
+      <div className="w-full">
+        <Input
+          label="Fecha"
+          name="registerDate"
+          type="datetime-local"
+          register={register}
+          errors={errors.registerDate}
+          required
+          containerClassName="w-full"
+        />
+      </div>
       <div className="flex gap-6 items-center w-full flex-col sm:flex-row">
         <Input
           label="Importe"

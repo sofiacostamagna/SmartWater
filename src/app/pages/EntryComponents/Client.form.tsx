@@ -47,6 +47,7 @@ const ClientForm = ({
         phoneNumber: formatNumber(selectedClient.phoneNumber, "BO", "NATIONAL").replaceAll(" ", ""),
         address: selectedClient.address,
         dayrenew: Number(selectedClient.renewInDays) > 0,
+        reference: selectedClient.reference || "",
       },
     } :
     {};
@@ -111,7 +112,8 @@ const ClientForm = ({
   };
 
   const saveClient = async (data: IClientForm) => {
-    let res = null
+    console.log("Data being sent:", data); // Debugging log to verify the data being sent
+    let res = null;
 
     if (selectedClient._id !== "") {
       res = await ClientsApiConector.updateClient({
@@ -125,7 +127,7 @@ const ClientForm = ({
           district: data.district,
           fullName: data.fullName || "Sin nombre",
           location: data.location,
-          reference: data.reference,
+          reference: data.reference, // Ensure this field is included
           clientImage: data.clientImage,
           phoneNumber: formatNumber(data.phoneNumber, "BO", "E.164"),
           renewInDays: data.dayrenew ? data.renewInDays : null,
@@ -137,7 +139,7 @@ const ClientForm = ({
           isAgency: data.isAgency,
           isClient: data.isClient,
         }
-      })
+      });
     } else {
       res = await ClientsApiConector.registerClient({
         data: {
@@ -146,7 +148,7 @@ const ClientForm = ({
           ciBackImage: data.ciBackImage,
           ciFrontImage: data.ciFrontImage,
           comment: "",
-          reference: data.reference || "",
+          reference: data.reference || "", // Ensure this field is included
           credit: 0,
           district: data.district,
           fullName: data.fullName || "Sin nombre",
@@ -165,7 +167,7 @@ const ClientForm = ({
           averageRenewal: !data.dayrenew,
           phoneLandLine: data.phoneLandLine ? formatNumber(data.phoneLandLine, "BO", "E.164") : undefined
         }
-      })
+      });
     }
 
     if (res) {
@@ -173,7 +175,7 @@ const ClientForm = ({
       window.location.reload();
     } else {
       toast.error("Upps error al crear cliente");
-      setActive(false)
+      setActive(false);
     }
   }
 

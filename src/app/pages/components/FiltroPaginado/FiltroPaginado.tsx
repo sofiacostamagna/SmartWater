@@ -486,18 +486,18 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
   };
 
   const getDataClients = async () => {
-    const filters = activeFilters ? { ...activeFilters, clientDeleted: false } : { clientDeleted: false }
+    const filters = activeFilters ? { ...activeFilters, clientDeleted: false } : { clientDeleted: false };
 
-    let datClients: { data: Client[] } & QueryMetadata | null = null
+    let datClients: { data: Client[] } & QueryMetadata | null = null;
     if (filters) {
       if (filters.hasOwnProperty('text')) {
         datClients = await ClientsApiConector.searchClients({ pagination: { page: 1, pageSize: 30000 }, filters });
       } else {
         if (!filters?.finalDate && !!filters?.initialDate) {
-          filters.finalDate = moment().format("YYYY-MM-DD")
+          filters.finalDate = moment().format("YYYY-MM-DD");
         }
         if (!!filters?.finalDate && !filters?.initialDate) {
-          filters.initialDate = "2020-01-01"
+          filters.initialDate = "2020-01-01";
         }
 
         datClients = await ClientsApiConector.getClients({ pagination: { page: 1, pageSize: 30000 }, filters });
@@ -550,7 +550,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
             NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A",
             CODIGO: client.code ? client.code : "Sin codigo",
             DIRECCION: client.address ? client.address : "Sin direccion",
-            REFERENCIA: client.comment || "Sin referencia",
+            REFERENCIA: client.reference || "Sin referencia",
             USUARIO: searchUser(client.user, userList),
             ZONA: zone?.name || "Sin zona",
             BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio",
@@ -606,7 +606,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
           NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A",
           CODIGO: client.code ? client.code : "Sin codigo",
           DIRECCION: client.address ? client.address : "Sin direccion",
-          REFERENCIA: client.comment || "Sin referencia",
+          REFERENCIA: client.reference || "Sin referencia",
           USUARIO: searchUser(client.user, userList),
           ZONA: zone?.name || "Sin zona",
           BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio",

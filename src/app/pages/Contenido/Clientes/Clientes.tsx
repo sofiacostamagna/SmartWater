@@ -215,7 +215,9 @@ const Clientes: FC = () => {
         <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
           Editar Cliente
         </h2>
-        <ClientForm zones={zones} allClients={allClients}
+        <ClientForm
+          zones={zones}
+          allClients={allClients}
           isOpen={
             selectedClient._id !== "" && showMiniModal === false ? true : false
           }

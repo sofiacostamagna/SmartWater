@@ -1,6 +1,6 @@
 import { Switch } from "../Switch/Switch";
 import "./FiltroPaginado.css";
-import { forwardRef, ReactNode, useImperativeHandle } from "react";
+import { forwardRef, ReactNode, useImperativeHandle, useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { formatDateTime } from "../../../../utils/helpers";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,12 @@ import { Devolution } from "../../../../type/Devolution/devolution";
 import { Loans } from "../../../../type/Loans/Loans";
 import { useGlobalContext } from "../../../SmartwaterContext";
 
+type InfoPedidosData = {
+  text: string;
+  value: string | number;
+  [key: string]: any; // Allow additional dynamic properties for filtering
+};
+
 type Componentes = {
   order?: boolean;
   hasSearch?: boolean;
@@ -28,7 +34,7 @@ type Componentes = {
   currentPage?: number;
   handlePageChange?: (page: number) => void;
   infoPedidos?: boolean;
-  infoPedidosData?: { text: string; value: string; }[];
+  infoPedidosData?: InfoPedidosData[]; // Update type to use InfoPedidosData
   infoPedidosClass?: string;
   resultados?: boolean;
   resultadosPrestamo?: boolean;
@@ -75,7 +81,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
   children,
   onAdd,
   infoPedidos,
-  infoPedidosData,
+  infoPedidosData: initialInfoPedidosData,
   infoPedidosClass,
   resultados,
   swith,
@@ -109,30 +115,55 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
 
   const { setLoading } = useGlobalContext()
 
-  const searchUser = (id: string, userList: any) => {
-    //Busca el nombre del usuario
-    const user = userList.find((user: any) => user._id === id);
-    if (user) {
-      return `${user.fullName} - ${user.phoneNumber}`;
+  const [filteredInfoPedidosData, setFilteredInfoPedidosData] = useState<InfoPedidosData[]>(initialInfoPedidosData || []);
+
+  useEffect(() => {
+    if (activeFilters && initialInfoPedidosData) {
+      const filteredData = initialInfoPedidosData.filter(data => {
+        if (activeFilters.text && data.text) {
+          return data.text.toLowerCase().includes(activeFilters.text.toLowerCase());
+        }
+        if (activeFilters.minValue && typeof data.value === "number") {
+          return data.value >= activeFilters.minValue;
+        }
+        // Dynamically handle additional filters
+        for (const key in activeFilters) {
+          if (key !== "text" && key !== "minValue" && data.hasOwnProperty(key)) {
+            if (data[key] !== activeFilters[key]) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+
+      console.log("Filtered Data:", filteredData); // Log the filtered data
+      setFilteredInfoPedidosData(filteredData); // Update state with filtered data
     } else {
-      return "Usuario no encontrado";
+      console.log("No filters applied or no initial data."); // Debugging log
+      setFilteredInfoPedidosData(initialInfoPedidosData || []); // Fallback to all data if no filters
     }
-  };
+  }, [activeFilters, initialInfoPedidosData]);
 
   const searchZone = (id: string, zones: Zone[]): Zone | undefined => {
-    //Busca la zona del cliente
     const zone = zones.find((zone: any) => zone._id === id);
     return zone;
   };
 
   const searchDistrict = (id: string, districts: District[]): District | undefined => {
-    //Busca el distrito del cliente
     const district = districts.find((district: any) => district._id === id);
     return district;
   };
 
+  const searchUser = (id: string, userList: { _id: string; fullName: string; phoneNumber: string }[]): string => {
+    const user = userList.find((user) => user._id === id);
+    if (user) {
+      return `${user.fullName} - ${user.phoneNumber}`;
+    }
+    return "Usuario no encontrado";
+  };
+
   const setDetailClient = (loans: Array<Loans>, products: Array<Item>): { itemId: string; itemName: string; quantity: number }[] => {
-    //Guarda los detalles del cliente
     if (loans.length > 0) {
       const prod: Array<string> = [];
       const dataToSend: { itemId: string; itemName: string; quantity: number }[] = [];
@@ -174,7 +205,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
   };
 
   const setContract = (client: Client) => {
-    //Guarda los detalles del contrato
     if (client.hasContract) {
       if (client.hasExpiredContract) {
         return "CONTRATO VENCIDO";
@@ -191,7 +221,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
     devolutions: Array<Devolution>,
     products: Array<Item>
   ): { itemId: string; itemName: string; quantity: number }[] => {
-    //Guarda los detalles de las devoluciones
     const devolution = devolutions.filter(
       (devolution) => devolution.client === id
     );
@@ -243,7 +272,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
     devolutions: Array<Devolution>,
     products: Array<Item>
   ): { itemId: string; itemName: string; quantity: number }[] => {
-    //Guarda los detalles de los prestamos
     let devolution = devolutions.filter(
       (devolution: any) => devolution.client === id
     );
@@ -428,7 +456,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
           USUARIO: searchUser(sale.user, userList),
           "CODIGO CLIENTE": client?.code || "N/A",
           ZONA: zone?.name || "Sin zona",
-          BARRIO: zone ? (searchDistrict(client?.district || "", zone.districts)?.name || "Sin barrio") : "Sin barrio", // Buscar barrio
+          BARRIO: zone ? (searchDistrict(client?.district || "", zone.districts)?.name || "Sin barrio") : "Sin barrio",
           DIRECCION: client?.address || "N/A",
           NOMBRE: client?.fullName ? `${client.fullName || "Sin nombre"} ${!!client.deactivated ? "- Cliente Eliminado" : ""}` : "N/A",
           COMENTARIO: sale.comment ? sale.comment : "Sin comentario",
@@ -476,7 +504,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
       }
     }
 
-    // Cargar datos
     const data = datClients?.data || [];
     const userList = (await UsersApiConector.get({ pagination: { page: 1, pageSize: 30000 } }))?.data || [];
     const zones = (await ZonesApiConector.get({ pagination: { page: 1, pageSize: 30000 } }))?.data || [];
@@ -484,7 +511,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
     const loans = (await LoansApiConector.get({ pagination: { page: 1, pageSize: 30000 } }))?.data || []
     const devolutions = (await DevolutionsApiConector.get({ pagination: { page: 1, pageSize: 30000 } }))?.data || []
 
-    // Mapeo de datos
     const dataClientToExport: any[] = [];
 
     for (let idx = 0; idx < data.length; idx++) {
@@ -516,40 +542,40 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
                 ? "Agencia"
                 : client.isClient
                   ? "Cliente habitual"
-                  : "Desconocido", // Define el tipo de cliente
-            WHATSAPP: client.phoneNumber ?? "S/Numero", // Si tiene número de WhatsApp
-            "TELEFONO FIJO": client.phoneLandLine ? client.phoneLandLine : "S/Numero", // Número de teléfono
+                  : "Desconocido",
+            WHATSAPP: client.phoneNumber ?? "S/Numero",
+            "TELEFONO FIJO": client.phoneLandLine ? client.phoneLandLine : "S/Numero",
             "DATOS DE FACTURACION": client.billingInfo?.name ? client.billingInfo.name : "N/A",
             "CORREO ELECTRONICO": client.email ? client.email : "N/A",
-            NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A", // Código del cliente
-            CODIGO: client.code ? client.code : "Sin codigo", // Código del cliente
-            DIRECCION: client.address ? client.address : "Sin direccion", // Dirección
-            REFERENCIA: client.comment || "Sin referencia", // Comentario o referencia
-            USUARIO: searchUser(client.user, userList), // Buscar usuario asociado
-            ZONA: zone?.name || "Sin zona", // Buscar la zona
-            BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio", // Buscar barrio
-            "TIEMPO DE RENOVACION": client.renewInDays !== null ? client.renewInDays : "", // Tiempo de renovación
-            "RENOVACION PROMEDIO": client.averageRenewal ? "SI" : "NO", // Tiempo de renovación
-            "DIAS RENOVACION PROMEDIO": (client.averageRenewal && client.lastSale && client.renewDate) ? Math.abs(moment(new Date(client.lastSale).toISOString().split("T")[0]).diff(new Date(client.renewDate).toISOString().split("T")[0], 'days')) : "", // Tiempo de renovación
+            NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A",
+            CODIGO: client.code ? client.code : "Sin codigo",
+            DIRECCION: client.address ? client.address : "Sin direccion",
+            REFERENCIA: client.comment || "Sin referencia",
+            USUARIO: searchUser(client.user, userList),
+            ZONA: zone?.name || "Sin zona",
+            BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio",
+            "TIEMPO DE RENOVACION": client.renewInDays !== null ? client.renewInDays : "",
+            "RENOVACION PROMEDIO": client.averageRenewal ? "SI" : "NO",
+            "DIAS RENOVACION PROMEDIO": (client.averageRenewal && client.lastSale && client.renewDate) ? Math.abs(moment(new Date(client.lastSale).toISOString().split("T")[0]).diff(new Date(client.renewDate).toISOString().split("T")[0], 'days')) : "",
             "FECHA DE REGISTRO": formatDateTime(
               client.created,
               "numeric",
               "numeric",
               "2-digit", false, true
-            ), // Formatear la fecha de registro
-            CONTRATOS: setContract(client) || "SIN CONTRATOS", // Estado de contratos
-            PRESTAMOS: loan ? `${loan.quantity} ${loan.itemName}` : "SIN MOVIMIENTO", // Detalles de préstamos
-            DEVOLUCIONES: devol ? `${devol.quantity} ${devol.itemName}` : "SIN MOVIMIENTO", // Detalles de devoluciones
-            SALDOS: saldo ? `${saldo.quantity} ${saldo.itemName}` : "SIN SALDOS", // Detalles de saldos
+            ),
+            CONTRATOS: setContract(client) || "SIN CONTRATOS",
+            PRESTAMOS: loan ? `${loan.quantity} ${loan.itemName}` : "SIN MOVIMIENTO",
+            DEVOLUCIONES: devol ? `${devol.quantity} ${devol.itemName}` : "SIN MOVIMIENTO",
+            SALDOS: saldo ? `${saldo.quantity} ${saldo.itemName}` : "SIN SALDOS",
             "FECHA DE ULTIMA VENTA": client.lastSale
               ? formatDateTime(client.lastSale, "numeric", "numeric", "2-digit", false, true)
-              : "Sin ventas", // Fecha de la última venta
+              : "Sin ventas",
             "ULTIMA FECHA POSPUESTO": client.lastPostponed
               ? formatDateTime(client.lastPostponed, "numeric", "numeric", "2-digit", false, true)
-              : "N/A", // Fecha de la última venta
+              : "N/A",
             "PROXIMA FECHA DE RENOVACION": client.renewDate
               ? formatDateTime(client.renewDate, "numeric", "numeric", "2-digit", false, true)
-              : "N/A", // Fecha de la última venta
+              : "N/A",
             "SALDOS POR COBRAR BS": client.credit || 0,
           };
 
@@ -557,9 +583,9 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
             dataClientToExport.push(typeDataToExport)
           } else {
             dataClientToExport.push({
-              PRESTAMOS: loan ? `${loan.quantity} ${loan.itemName}` : "SIN MOVIMIENTO", // Detalles de préstamos
-              DEVOLUCIONES: devol ? `${devol.quantity} ${devol.itemName}` : "SIN MOVIMIENTO", // Detalles de devoluciones
-              SALDOS: saldo ? `${saldo.quantity} ${saldo.itemName}` : "SIN SALDOS", // Detalles de saldos
+              PRESTAMOS: loan ? `${loan.quantity} ${loan.itemName}` : "SIN MOVIMIENTO",
+              DEVOLUCIONES: devol ? `${devol.quantity} ${devol.itemName}` : "SIN MOVIMIENTO",
+              SALDOS: saldo ? `${saldo.quantity} ${saldo.itemName}` : "SIN SALDOS",
             })
           }
         })
@@ -572,40 +598,40 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
               ? "Agencia"
               : client.isClient
                 ? "Cliente habitual"
-                : "Desconocido", // Define el tipo de cliente
-          WHATSAPP: client.phoneNumber ?? "S/Numero", // Si tiene número de WhatsApp
-          "TELEFONO FIJO": client.phoneLandLine ? client.phoneLandLine : "S/Numero", // Número de teléfono
+                : "Desconocido",
+          WHATSAPP: client.phoneNumber ?? "S/Numero",
+          "TELEFONO FIJO": client.phoneLandLine ? client.phoneLandLine : "S/Numero",
           "DATOS DE FACTURACION": client.billingInfo?.name ? client.billingInfo.name : "N/A",
           "CORREO ELECTRONICO": client.email ? client.email : "N/A",
-          NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A", // Código del cliente
-          CODIGO: client.code ? client.code : "Sin codigo", // Código del cliente
-          DIRECCION: client.address ? client.address : "Sin direccion", // Dirección
-          REFERENCIA: client.comment || "Sin referencia", // Comentario o referencia
-          USUARIO: searchUser(client.user, userList), // Buscar usuario asociado
-          ZONA: zone?.name || "Sin zona", // Buscar la zona
-          BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio", // Buscar barrio
-          "TIEMPO DE RENOVACION": client.renewInDays !== null ? client.renewInDays : "", // Tiempo de renovación
-          "RENOVACION PROMEDIO": client.averageRenewal ? "SI" : "NO", // Tiempo de renovación
-          "DIAS RENOVACION PROMEDIO": (client.averageRenewal && client.lastSale && client.renewDate) ? Math.abs(moment(new Date(client.lastSale).toISOString().split("T")[0]).diff(new Date(client.renewDate).toISOString().split("T")[0], 'days')) : "", // Tiempo de renovación
+          NIT: client.billingInfo?.NIT ? client.billingInfo.NIT : "N/A",
+          CODIGO: client.code ? client.code : "Sin codigo",
+          DIRECCION: client.address ? client.address : "Sin direccion",
+          REFERENCIA: client.comment || "Sin referencia",
+          USUARIO: searchUser(client.user, userList),
+          ZONA: zone?.name || "Sin zona",
+          BARRIO: zone ? (searchDistrict(client.district, zone.districts)?.name || "Sin barrio") : "Sin barrio",
+          "TIEMPO DE RENOVACION": client.renewInDays !== null ? client.renewInDays : "",
+          "RENOVACION PROMEDIO": client.averageRenewal ? "SI" : "NO",
+          "DIAS RENOVACION PROMEDIO": (client.averageRenewal && client.lastSale && client.renewDate) ? Math.abs(moment(new Date(client.lastSale).toISOString().split("T")[0]).diff(new Date(client.renewDate).toISOString().split("T")[0], 'days')) : "",
           "FECHA DE REGISTRO": formatDateTime(
             client.created,
             "numeric",
             "numeric",
             "2-digit", false, true
-          ), // Formatear la fecha de registro
-          CONTRATOS: setContract(client) || "SIN CONTRATOS", // Estado de contratos
-          PRESTAMOS: "SIN MOVIMIENTO", // Detalles de préstamos
-          DEVOLUCIONES: "SIN MOVIMIENTO", // Detalles de devoluciones
-          SALDOS: "SIN SALDOS", // Detalles de saldos
+          ),
+          CONTRATOS: setContract(client) || "SIN CONTRATOS",
+          PRESTAMOS: "SIN MOVIMIENTO",
+          DEVOLUCIONES: "SIN MOVIMIENTO",
+          SALDOS: "SIN SALDOS",
           "FECHA DE ULTIMA VENTA": client.lastSale
             ? formatDateTime(client.lastSale, "numeric", "numeric", "2-digit", false, true)
-            : "Sin ventas", // Fecha de la última venta
+            : "Sin ventas",
           "ULTIMA FECHA POSPUESTO": client.lastPostponed
             ? formatDateTime(client.lastPostponed, "numeric", "numeric", "2-digit", false, true)
-            : "N/A", // Fecha de la última venta
+            : "N/A",
           "PROXIMA FECHA DE RENOVACION": client.renewDate
             ? formatDateTime(client.renewDate, "numeric", "numeric", "2-digit", false, true)
-            : "N/A", // Fecha de la última venta
+            : "N/A",
           "SALDOS POR COBRAR BS": client.credit || 0,
         };
 
@@ -617,7 +643,6 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
   };
 
   const exportData = (fileName: string, data: any) => {
-    //Exporta los datos a un archivo excel
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
@@ -639,6 +664,47 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
   };
 
   const { register, setValue, watch } = useForm();
+
+  // Helper function to format numbers with "K" for thousands
+  const formatValue = (value: number): string => {
+    return `${Math.round(value)} Bs`; // Return integer values
+  };
+
+  // Helper function to parse formatted value strings into numbers
+  const parseValue = (value: string | number): number => {
+    if (typeof value === "number") {
+      return value;
+    }
+    if (typeof value === "string") {
+      const numericValue = parseFloat(value.replace(",", ".").replace(" Bs", "").trim());
+      return numericValue;
+    }
+    return 0; // Default fallback
+  };
+
+  // Helper function to group and aggregate data
+  const groupAndAggregateData = (data: { text: string; value: number | string }[]) => {
+    const groupedData: { text: string; totalValue: number; count: number }[] = [];
+
+    data.forEach((item) => {
+      console.log("Processing Item:", item); // Debugging log for each item
+      const numericValue = parseValue(item.value); // Parse value into a number
+      if (!isNaN(numericValue)) {
+        const existingGroup = groupedData.find((group) => group.text === item.text);
+        if (existingGroup) {
+          existingGroup.totalValue += numericValue;
+          existingGroup.count += 1;
+        } else {
+          groupedData.push({ text: item.text, totalValue: numericValue, count: 1 });
+        }
+      } else {
+        console.warn("Skipping item with invalid value:", item); // Warning for invalid values
+      }
+    });
+
+    console.log("Grouped Data:", groupedData); // Debugging log for grouped data
+    return groupedData;
+  };
 
   return (
     <>
@@ -696,7 +762,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
               <div className="flex justify-end items-center gap-4 py-3 pb-6 flex-wrap">
                 <div className="resultado-busqueda">
                   <span>Resultados:</span>
-                  <span className="text-blue_custom"> {total}</span>
+                  <span className="text-blue_custom"> {total}</span> {/* Displays the total count */}
                 </div>
                 {
                   (otherResults && otherResults.length > 0) &&
@@ -709,7 +775,7 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
                 }
                 {
                   order &&
-                  < div className="resultado-busqueda">
+                  <div className="resultado-busqueda">
                     <span>Ordenar por: </span>
                     <select
                       className="select-filtro text-blue_custom bg-main-background"
@@ -746,17 +812,16 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
           <div className="flex w-4/12 items-center pt-2 justify-center h-full max-sm:flex-col max-sm:pb-4 max-sm:w-full">
             <div className="flex justify-between items-center w-full pl-4">
               {filtro && (
-                <div className="w-full relative" >
+                <div className="w-full relative">
                   {!!filterInject && filterInject}
                   <button
                     type="button"
                     className="boton-filtro relative"
                     onClick={onFilter}
                   >
-                    {
-                      hasFilter &&
+                    {hasFilter && (
                       <div className="bg-red-500 rounded-full p-[5px] absolute -top-1 -right-1" />
-                    }
+                    )}
                     <span style={{ marginRight: "5px" }}>Filtrar</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -817,29 +882,30 @@ const FiltroPaginado = forwardRef<IFiltroPaginadoReference, Componentes>(({
           </div>
           {infoPedidos && (
             <div className={`ml-6 infoPedidos-filtro bg-blocks dark:border-blocks overflow-auto text-xs ${infoPedidosClass ?? "mb-6"}`}>
-              {
-                (infoPedidosData && infoPedidosData.length > 0) ?
-                  <>
-                    {
-                      infoPedidosData.map(dat => (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "17px",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <div className="infoPedidosLetras-filtro">
-                            <span>{dat.text}</span>
-                          </div>
-                          <div className="infoPedidosLetras-filtro text-blue_custom font-[600] whitespace-nowrap">
-                            <span>{dat.value}</span>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </> : <div className="w-full h-full flex items-center justify-center">Sin data</div>
-              }
+              {filteredInfoPedidosData && filteredInfoPedidosData.length > 0 ? (
+                groupAndAggregateData(filteredInfoPedidosData).map((group, index) => (
+                  <div
+                    key={`${group.text}-${index}`}
+                    style={{
+                      display: "flex",
+                      gap: "17px",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div className="infoPedidosLetras-filtro">
+                      <span>{group.text || "No description"}</span>
+                    </div>
+                    <div className="infoPedidosLetras-filtro text-blue_custom font-[600] whitespace-nowrap">
+                      <span style={{ whiteSpace: "normal" }}>
+                        {formatValue(group.totalValue)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">No data available</div>
+              )}
             </div>
           )}
         </div>

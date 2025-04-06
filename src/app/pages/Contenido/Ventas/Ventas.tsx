@@ -177,6 +177,32 @@ const Ventas: FC = () => {
     setQuery({ filters: btoa(JSON.stringify({ ...queryData, pagination: { ...queryData?.pagination, page: 1 }, filters })) })
   };
 
+  const calculateInfoPedidosData = (sales: Sale[], products: Product[]) => {
+    const aggregatedData: { text: string; value: number }[] = []; // Use numeric value
+
+    sales.forEach((sale) => {
+      sale.detail.forEach((detail) => {
+        const product = products.find((p) => p._id === detail.product);
+        const productName = product?.name || "Producto desconocido";
+
+        const existingEntry = aggregatedData.find((entry) => entry.text === productName);
+        if (existingEntry) {
+          existingEntry.value += detail.price * detail.quantity; // Aggregate total price
+        } else {
+          aggregatedData.push({
+            text: productName,
+            value: detail.price * detail.quantity, // Use numeric value
+          });
+        }
+      });
+    });
+
+    return aggregatedData.map((entry) => ({
+      ...entry,
+      value: `${entry.value} Bs`, // Format value as a string for display
+    }));
+  };
+
   return (
     <>
       <div className="px-10">
@@ -199,7 +225,7 @@ const Ventas: FC = () => {
           hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
           searchPlaceholder="Buscar por nombre o teléfono de cliente"
           infoPedidos={true}
-          infoPedidosData={summary.filter(s => s.cant > 0).map(s => ({ text: `${s.cant} ${s.prod}`, value: `${millify(s.total, { precision: 2 })} Bs` }))}
+          infoPedidosData={calculateInfoPedidosData(currentData, products)}
           sorted={sort === 'asc' ? "older" : "new"}
           activeFilters={{ ...queryData?.filters, clients: queryData?.clients }}
         >

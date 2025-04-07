@@ -121,11 +121,19 @@ const SaldosIniciales = () => {
                 <FiltrosSaldosIniciales distribuidores={distribuidores} initialFilters={savedFilters} onChange={handleFilterChange} />
             </Modal>
 
-            <Modal isOpen={showMiniModal} onClose={() => setShowMiniModal(false)}>
+            <Modal isOpen={showMiniModal} onClose={() => setShowMiniModal(false)}
+             className='!w-[95%] sm:!w-3/4'>
+             <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
+                Agregar saldos iniciales
+             </h2>
                 <SaldosInicialesForm distribuidores={distribuidores} elements={elements} onCancel={() => { setShowMiniModal(false) }} />
             </Modal>
 
-            <Modal isOpen={showModal && selectedBalance.code !== ""} onClose={() => { setShowModal(false); setSelectedBalance(balance) }}>
+            <Modal isOpen={showModal && selectedBalance.code !== ""} onClose={() => { setShowModal(false); setSelectedBalance(balance) }}
+              className='!w-[95%] sm:!w-3/4'>
+              <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
+                 Editar saldos iniciales
+              </h2>
                 <SaldosInicialesForm distribuidores={distribuidores} elements={elements} onCancel={() => { setShowModal(false); setSelectedBalance(balance) }} />
             </Modal>
 

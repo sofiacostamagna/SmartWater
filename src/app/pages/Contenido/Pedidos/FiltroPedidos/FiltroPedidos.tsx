@@ -183,37 +183,6 @@ const FiltroPedidos: FC<{
                     </div>
                 }
 
-                <div className="flex flex-col sm:flex-row mb-4">
-                    <div className="flex-1">
-                        <div className="FiltroClientes-Fechastitulo mb-2">
-                            <span className="text-blue_custom font-semibold">Fechas de entrega programada</span>
-                        </div>
-                        <div className="flex gap-3 flex-wrap">
-                            <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
-                                <span className="text-left text-sm">De</span>
-                                <img src="/desde.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
-                                <input
-                                    max={watch('toDate')?.toString() || moment().format("YYYY-MM-DD")}
-                                    type="date"
-                                    {...register("fromDate")}
-                                    className="border-0 rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
-                                />
-                            </div>
-                            <div className="shadow-xl rounded-3xl px-4 py-2 border-gray-100 border flex-1 relative">
-                                <span className="text-left text-sm">A</span>
-                                <img src="/hasta.svg" alt="" className="w-[20px] h-[20px] absolute bottom-3 left-4 invert-0 dark:invert" />
-                                <input
-                                    min={watch('fromDate')?.toString()}
-                                    max={moment().format("YYYY-MM-DD")}
-                                    type="date"
-                                    {...register("toDate")}
-                                    className="border-0  rounded outline-none font-semibold w-full bg-transparent text-sm full-selector pl-10"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="w-full flex flex-col gap-2 my-6">
                     <label className="font-semibold text-blue_custom">Distribuidores</label>
                     <div className="flex flex-wrap gap-x-6 gap-y-4">

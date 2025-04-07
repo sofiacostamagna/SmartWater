@@ -17,7 +17,16 @@ type InventariosValoradosContextType = {
 export const InventariosValoradosContext =
     createContext<InventariosValoradosContextType>({} as InventariosValoradosContextType);
 
-export const initialBalanceMock: KardexInitialBalances = { detailsToElements: [], initialBalance: { code: "", registerDate: "", user: [], documentNumber: "" } }
+export const initialBalanceMock: KardexInitialBalances = { 
+    detailsToElements: [], 
+    initialBalance: { 
+        code: "", 
+        registerDate: "", 
+        user: [], 
+        documentNumber: "", 
+        itemId: "" 
+    } 
+}
 
 const InventariosValoradosProvider = ({ children }: PropsWithChildren) => {
     const [showModal, setShowModal] = useState<boolean>(false);

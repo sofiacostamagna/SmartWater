@@ -233,6 +233,7 @@ export type KardexInitialBalances = {
         registerDate: string;
         code: string;
         documentNumber: string;
+        itemId: string; // Added itemId property
     };
     detailsToElements: {
         _id: string;

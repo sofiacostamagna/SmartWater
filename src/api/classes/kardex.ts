@@ -49,4 +49,20 @@ export abstract class KardexApiConector {
             return null
         }
     }
+
+    static async createInitialBalance(data: { itemId: string; initialBalance: number; date: string }): Promise<boolean> {
+        try {
+            // Correct the URL to avoid duplicate `/v1/`
+            const res = await ApiConnector.getInstance().post(`/valued-physical-inventory/initial-balance`, data);
+            console.log("Initial Balance Created:", res.data); // Debug created initial balance
+            return true;
+        } catch (error: any) {
+            if (error.response?.status === 400) {
+                console.error("Validation Error:", error.response.data.message); // Handle validation errors
+            } else {
+                console.error("Error Creating Initial Balance:", error); // Debug other errors
+            }
+            return false;
+        }
+    }
 }

@@ -13,20 +13,20 @@ import { ValuedPhysicalApiConector } from "../../../../../../api/classes/valued-
 
 type Props = {
     onCancel: () => void;
-    elemnts: MatchedElement[];
+    elements: MatchedElement[];
     inputHandlers?: {
         onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
         onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
     };
 };
 
-const AddEditInitialBalances: React.FC<Props> = ({ onCancel, elemnts, inputHandlers }) => {
+const AddEditInitialBalances: React.FC<Props> = ({ onCancel, elements, inputHandlers }) => {
     const [active, setActive] = useState(false);
     const { selectedInventario } = useContext(InventariosValoradosContext)
 
     const { register, formState: { errors, isValid }, handleSubmit } = useForm<IInitialBalanceBody['data']>({
         defaultValues: {
-            elements: elemnts.map(e => ({
+            elements: elements.map(e => ({
                 product: e.isProduct ? e._id : undefined,
                 item: e.isItem ? ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id) : undefined,
                 quantity: selectedInventario.detailsToElements.length > 0 ? selectedInventario.detailsToElements.find(el => (e.isProduct && el.elementId === e._id) || (e.isItem && el.elementId === ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id)))?.quantity : 0,
@@ -158,7 +158,7 @@ const AddEditInitialBalances: React.FC<Props> = ({ onCancel, elemnts, inputHandl
 
 
             <DataTable columns={columns} className="w-full no-inner-border border !border-font-color/20 !rounded-[10px]"
-                data={elemnts} noDataComponent={<div className="min-h-[150px] flex items-center justify-center">Sin productos</div>} />
+                data={elements} noDataComponent={<div className="min-h-[150px] flex items-center justify-center">Sin productos</div>} />
 
             <div className="w-full sticky bottom-0 bg-main-background h-full z-50">
                 <div className="py-4 flex flex-row gap-4 items-center justify-center px-6">

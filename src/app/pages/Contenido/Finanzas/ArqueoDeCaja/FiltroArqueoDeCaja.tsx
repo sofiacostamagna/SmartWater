@@ -1,3 +1,4 @@
+import React from 'react';
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction } from "react";
 import moment from "moment";
@@ -12,12 +13,14 @@ const initialState: IArqueoFilters = {
   toDate: null,
 };
 
-const FiltroArqueoDeCaja = ({
-  onChange,
-  setShowFiltro,
-}: {
+interface FiltroArqueoDeCajaProps {
   onChange: (filters: IArqueoFilters) => void;
   setShowFiltro: Dispatch<SetStateAction<boolean>>;
+}
+
+const FiltroArqueoDeCaja: React.FC<FiltroArqueoDeCajaProps> = ({
+  onChange,
+  setShowFiltro,
 }) => {
   const { register, handleSubmit, setValue, watch } = useForm<IArqueoFilters>({
     defaultValues: initialState,

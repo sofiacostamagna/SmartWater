@@ -9,15 +9,15 @@ import { initialBalances } from './pdfTemplates';
 import { useGlobalContext } from '../../../../../SmartwaterContext';
 
 interface Props {
+    elements: MatchedElement[];
     onCancel?: () => void;
-    elemnts: MatchedElement[];
     inputHandlers?: {
         onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
         onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
     };
 }
 
-const ShowInitialBalancesModal = ({ elemnts, onCancel, inputHandlers }: Props) => {
+const ShowInitialBalancesModal = ({ elements, onCancel, inputHandlers }: Props) => {
     const { selectedInventario } = useContext(InventariosValoradosContext)
     const { setLoading } = useGlobalContext()
 
@@ -33,7 +33,7 @@ const ShowInitialBalancesModal = ({ elemnts, onCancel, inputHandlers }: Props) =
                     table: selectedInventario.detailsToElements.map(row => {
                         return [
                             `${row.element}`,
-                            `${elemnts.find(e => (e.isProduct && row.elementId === e._id) || (e.isItem && row.elementId === ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id)))?.unitMeasure?.name || "Unidad desconocida"}`,
+                            `${elements.find(e => (e.isProduct && row.elementId === e._id) || (e.isItem && row.elementId === ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id)))?.unitMeasure?.name || "Unidad desconocida"}`,
                             `${row.quantity.toLocaleString()}`,
                             `${row.quantity.toLocaleString()}`,
                         ]
@@ -52,7 +52,7 @@ const ShowInitialBalancesModal = ({ elemnts, onCancel, inputHandlers }: Props) =
         },
         {
             name: "Unidad",
-            selector: row => elemnts.find(e => (e.isProduct && row.elementId === e._id) || (e.isItem && row.elementId === ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id)))?.unitMeasure?.name || "Unidad desconocida"
+            selector: row => elements.find(e => (e.isProduct && row.elementId === e._id) || (e.isItem && row.elementId === ((e.matchingItems && e.matchingItems?.length > 0) ? e.matchingItems[0]._id : e._id)))?.unitMeasure?.name || "Unidad desconocida"
         },
         {
             name: "Cantidad",
@@ -62,7 +62,7 @@ const ShowInitialBalancesModal = ({ elemnts, onCancel, inputHandlers }: Props) =
             name: "Costo unitario",
             cell: (row) => row.quantity.toLocaleString()
         },
-    ], [elemnts])
+    ], [elements])
 
     return (
         <div className="flex flex-col gap-6 justify-center items-center w-full p-6">

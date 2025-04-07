@@ -104,7 +104,11 @@ const TableFisicosSaldosIniciales = ({ data, className }: Props) => {
                     <button onClick={() => { setSelectedBalance(row); setSelectedOption(true) }}>
                         <i className="fa fa-eye text-blue_bright" aria-hidden="true"></i>
                     </button>
-                    <button onClick={() => { setSelectedBalance(row); setShowModal(true) }}>
+                    <button onClick={() => { 
+                        setSelectedBalance(row); 
+                        setShowModal(true); // Asegúrate de que este estado se actualice correctamente
+                        console.log("Edit button clicked, selectedBalance set to:", row); // Log para depuración
+                    }}>
                         <i className="fa-solid fa-pen-to-square text-blue_bright" aria-hidden="true"></i>
                     </button>
                     <button onClick={() => deleteRegistry(row)}>

@@ -1,115 +1,154 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import InventariosLayout from '../InventariosLayout/InventariosLayout'
-import TableValoradosSaldosIniciales from './Tables/TableValoradosSaldosIniciales'
+import { User } from '../../../../../type/User'
 import Modal from '../../../EntryComponents/Modal'
-import { initialBalanceMock, InventariosValoradosContext } from './InventariosValoradosProvider'
-import { KardexInitialBalances, MatchedElement } from '../../../../../type/Kardex'
-import { KardexApiConector } from '../../../../../api/classes/kardex'
-import AddEditInitialBalances from './Modals/AddEditInitialBalances'
+import FiltrosSaldosIniciales from './Filtros/FiltrosSaldosIniciales'
+import { UsersApiConector } from '../../../../../api/classes'
+import { IPhysicalGetParams } from '../../../../../api/types/physical-inventory'
+import { MatchedElementRoot } from '../../../../../type/Kardex'
+import { PhysicalInventoryApiConector } from '../../../../../api/classes/physical-inventory'
+import { useGlobalContext } from '../../../../SmartwaterContext'
+import moment from 'moment'
+import { balance, InventariosFisicosContext } from '../Fisicos/InventariosFisicosProvider'
+import { PhysicalBalanceToShow, PhysicalInitialBalace } from '../../../../../type/PhysicalInventory'
 import ShowInitialBalancesModal from './Modals/ShowInitialBalancesModal'
+import TableFisicosSaldosIniciales from '../Fisicos/Tables/TableFisicosSaldosIniciales'
+import SaldosInicialesForm from '../Fisicos/Modals/SaldosInicialesForm'
 
 const SaldosIniciales = () => {
     const {
-        showMiniModal, setShowMiniModal,
-        selectedInventario, setSelectedInvetario,
-        showModal, setShowModal,
-        selectedOption, setSelectedOption
-    } = useContext(InventariosValoradosContext)
+        setShowFiltro, showFiltro,
+        setShowMiniModal, showMiniModal,
+        setShowModal, showModal,
+        setSelectedBalance, selectedBalance,
+        setSelectedOption, selectedOption
+    } = useContext(InventariosFisicosContext)
+    const { setLoading } = useGlobalContext()
 
-    const [elements, setElements] = useState<MatchedElement[]>([])
-    const [currentData, setCurrentData] = useState<KardexInitialBalances[]>([])
+    const [currentData, setCurrentData] = useState<PhysicalBalanceToShow[]>([])
+    const [elements, setElements] = useState<MatchedElementRoot[]>([]);
+    const [savedFilters, setSavedFilters] = useState<IPhysicalGetParams['filters']>({})
+
+    const [distribuidores, setDistribuidores] = useState<User[]>([])
 
     useEffect(() => {
-        KardexApiConector.getKardexElements().then(res => setElements(res?.elements || []))
+        PhysicalInventoryApiConector.getElements().then(res => setElements(res || []));
+        UsersApiConector.get({ filters: { desactivated: false }, pagination: { page: 1, pageSize: 30000 } }).then(res => setDistribuidores(res?.data || []))
     }, [])
+
+    const handleFilterChange = (filters: any) => {
+        setSavedFilters(filters);
+    };
 
     const getData = useCallback(async () => {
-        const res = await KardexApiConector.getInitialBalances()
+        setLoading(true)
 
-        if (res) {
-            setCurrentData([res])
-        } else {
-            setCurrentData([])
+        const filters = savedFilters ? { ...savedFilters } : {}
+        if (!!filters.initialDate && !filters.endDate) {
+            filters.endDate = moment().format("YYYY-MM-DD")
         }
-    }, [])
+
+        if (!filters.initialDate && !!filters.endDate) {
+            filters.initialDate = "2020-01-01"
+        }
+
+        const promises: Promise<PhysicalInitialBalace[] | { message: string; } | null>[] = []
+
+        if (filters.user) {
+            for (const dist of filters.user.split(',')) {
+                promises.push(PhysicalInventoryApiConector.get({ type: 'initial-balance', filters: { ...filters, user: dist } }))
+            }
+        } else {
+            promises.push(PhysicalInventoryApiConector.get({ type: 'initial-balance', filters }))
+        }
+
+        const responses = await Promise.all(promises)
+        const array: PhysicalInitialBalace[] = []
+
+        responses.forEach(res => {
+            const results = res ? 'message' in res ? [] : res : []
+            array.push(...results)
+        })
+
+        const arrayTransformed: PhysicalBalanceToShow[] = []
+
+        array.forEach((element) => {
+            const dist = distribuidores.find(d => d._id === element.user)
+            element.saldosIniciales.forEach((saldo) => {
+                arrayTransformed.push({
+                    code: saldo.code,
+                    saldo: saldo.saldo,
+                    showDate: moment.min(saldo.saldo.map(s => moment(s.registerDate))),
+                    user: {
+                        isAdmin: dist?.role === 'admin',
+                        _id: element.user,
+                        name: dist ? dist.fullName : 'No encontrado'
+                    }
+                })
+            })
+        })
+
+        setCurrentData(arrayTransformed.sort((a, b) => b.showDate.diff(a.showDate)))
+        setLoading(false)
+    }, [savedFilters, setLoading, distribuidores])
 
     useEffect(() => {
         getData()
     }, [getData])
 
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-        if (e.target.value === "0") {
-            e.target.value = "";
-        }
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        if (e.target.value === "") {
-            e.target.value = "0";
-        }
-    };
-
     return (
         <>
-            <InventariosLayout swith switchDetails={[
-                {
-                    isSelected: true,
-                    text: "Saldos iniciales",
-                    url: "/Finanzas/Inventarios/Valorados/Saldos"
-                },
-                {
-                    isSelected: false,
-                    text: "Reportes de inventario",
-                    url: "/Finanzas/Inventarios/Valorados/ReporteInventario"
-                },
-            ]}
-                add={currentData.length === 0} onAdd={() => setShowMiniModal(true)}>
-                <TableValoradosSaldosIniciales data={currentData.sort((a, b) => Number(b.initialBalance.code.split("-")[2]) - Number(a.initialBalance.code.split("-")[2]))}
-                    className='w-full no-inner-border border !border-font-color/20 !rounded-[10px]' />
+            <InventariosLayout filtro
+                onFilter={() => setShowFiltro(true)}
+                hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
+                swith switchDetails={[
+                    {
+                        isSelected: true,
+                        text: "Saldos iniciales diarios",
+                        url: "/Finanzas/Inventarios/Fisicos/Saldos"
+                    },
+                    {
+                        isSelected: false,
+                        text: "Reportes de inventario",
+                        url: "/Finanzas/Inventarios/Fisicos/ReporteInventario"
+                    },
+                ]} add onAdd={() => { setShowMiniModal(true) }} >
+                <TableFisicosSaldosIniciales data={currentData.sort((a, b) => Number(b.code.split("-")[2]) - Number(a.code.split("-")[2]))}
+                    className='w-full xl:!w-3/4 no-inner-border border !border-font-color/20 !rounded-[10px]' />
             </InventariosLayout>
 
-            <Modal isOpen={showMiniModal} onClose={() => setShowMiniModal(false)} className='!w-[95%] sm:!w-3/4'>
-                <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
-                    Agregar saldos iniciales
-                </h2>
-                <AddEditInitialBalances 
-                    onCancel={() => setShowMiniModal(false)} 
-                    elemnts={elements} 
-                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+            <Modal isOpen={showFiltro} onClose={() => setShowFiltro(false)}>
+                <FiltrosSaldosIniciales distribuidores={distribuidores} initialFilters={savedFilters} onChange={handleFilterChange} />
+            </Modal>
+
+            <Modal isOpen={showMiniModal} onClose={() => setShowMiniModal(false)}>
+                <SaldosInicialesForm
+                    distribuidores={distribuidores}
+                    elements={elements}
+                    onCancel={() => { setShowMiniModal(false) }}
                 />
             </Modal>
 
-            <Modal isOpen={showModal && selectedInventario.detailsToElements.length > 0} onClose={() => {
-                setShowModal(false);
-                setSelectedInvetario(initialBalanceMock);
-            }} className='!w-[95%] sm:!w-3/4'>
-                <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
-                    Agregar saldos iniciales
-                </h2>
-                <AddEditInitialBalances 
-                    onCancel={() => {
-                        setShowModal(false);
-                        setSelectedInvetario(initialBalanceMock);
-                    }} 
-                    elemnts={elements} 
-                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+            <Modal isOpen={showModal && selectedBalance.code !== ""} onClose={() => { setShowModal(false); setSelectedBalance(balance) }}>
+                <SaldosInicialesForm
+                    distribuidores={distribuidores}
+                    elements={elements}
+                    onCancel={() => { setShowModal(false); setSelectedBalance(balance) }}
                 />
             </Modal>
 
-            <Modal isOpen={selectedOption && selectedInventario.detailsToElements.length > 0} onClose={() => {
-                setSelectedOption(false);
-                setSelectedInvetario(initialBalanceMock);
-            }} className='!w-[95%] sm:!w-3/4'>
+            <Modal isOpen={selectedOption && selectedBalance.code !== ""} onClose={() => { setSelectedOption(false); setSelectedBalance(balance) }}>
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
-                    Ver saldos iniciales
+                    Saldos iniciales
                 </h2>
-                <ShowInitialBalancesModal 
-                    onCancel={() => {
-                        setSelectedOption(false);
-                        setSelectedInvetario(initialBalanceMock);
-                    }} 
-                    elemnts={elements} 
-                    inputHandlers={{ onFocus: handleFocus, onBlur: handleBlur }} 
+                <ShowInitialBalancesModal
+                    elements={elements.map(element => ({
+                        ...element,
+                        hasKardex: false,
+                        initialBalanceTransactions: [],
+                        initialBalance: 0,
+                    }))}
+                    onCancel={() => { setSelectedOption(false); setSelectedBalance(balance) }}
                 />
             </Modal>
         </>

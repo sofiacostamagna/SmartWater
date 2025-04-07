@@ -2,7 +2,7 @@ import { FC, useContext, useState } from "react";
 import "./ArqueoDeCaja.css";
 import { PageTitle } from "../../../components/PageTitle/PageTitle";
 import { TableArqueoCaja } from "./TableArqueoCaja/TableArqueoCaja";
-import FiltroArqueoDeCaja from "./FiltroArqueoDeCaja";
+
 import { useForm, SubmitHandler } from "react-hook-form";
 import { CashOpen, Transaction } from "../../../../../type/Cash";
 import Input from "../../../EntryComponents/Inputs";
@@ -16,6 +16,7 @@ import momentTz from "moment-timezone";
 import { useGlobalContext } from "../../../../SmartwaterContext";
 import { ArqueoDeCajaContext } from "./ArqueoDeCajaContext";
 import Modal from "../../../EntryComponents/Modal";
+import FiltroArqueoDeCaja from "./FiltroArqueoDeCaja";
 
 interface IArqueoFilters {
   fromDate: string | null;
@@ -206,7 +207,7 @@ const ArqueoDeCaja: FC = () => {
           {/* Filter modal */}
           <Modal isOpen={showFiltro} onClose={() => setShowFiltro(false)}>
             <FiltroArqueoDeCaja
-              onChange={(newFilters) => setFilters(newFilters)}
+              onChange={(newFilters: IArqueoFilters) => setFilters(newFilters)}
               setShowFiltro={setShowFiltro}
             />
           </Modal>

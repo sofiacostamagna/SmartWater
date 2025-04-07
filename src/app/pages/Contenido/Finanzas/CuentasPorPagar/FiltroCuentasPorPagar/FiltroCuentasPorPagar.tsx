@@ -212,13 +212,7 @@ const FiltroCuentasPorPagar = ({
 
                     <div className="w-full flex flex-col gap-2 my-6">
                         <label className="font-semibold text-blue_custom">Distribuidores</label>
-                        <input
-                            type="text"
-                            placeholder="Buscar distribuidores..."
-                            value={distributorSearch}
-                            onChange={(e) => setDistributorSearch(e.target.value)}
-                            className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none mb-4"
-                        />
+                       
                         <div className="flex flex-wrap gap-x-6 gap-y-4">
                             {distribuidores
                                 .filter(d => d.role === 'user' && d.fullName?.toLowerCase().includes(distributorSearch.toLowerCase()))
@@ -252,13 +246,7 @@ const FiltroCuentasPorPagar = ({
                                 ))}
                         </div>
                         <label className="text-blue_custom mt-2">Administradores</label>
-                        <input
-                            type="text"
-                            placeholder="Buscar administradores..."
-                            value={distributorSearch}
-                            onChange={(e) => setDistributorSearch(e.target.value)}
-                            className="p-2 w-full rounded bg-gray-100 text-black focus:outline-none mb-4"
-                        />
+                      
                         <div className="flex flex-wrap gap-x-6 gap-y-4">
                             {distribuidores
                                 .filter(d => d.role === 'admin' && d.fullName?.toLowerCase().includes(distributorSearch.toLowerCase()))

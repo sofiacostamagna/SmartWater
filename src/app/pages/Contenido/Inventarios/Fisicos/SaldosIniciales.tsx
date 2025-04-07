@@ -129,6 +129,7 @@ const SaldosIniciales = () => {
                 <SaldosInicialesForm distribuidores={distribuidores} elements={elements} onCancel={() => { setShowModal(false); setSelectedBalance(balance) }} />
             </Modal>
 
+
             <Modal isOpen={selectedOption && selectedBalance.code !== ""} onClose={() => { setSelectedOption(false); setSelectedBalance(balance) }}>
                 <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
                     Saldos iniciales

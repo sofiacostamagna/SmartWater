@@ -35,7 +35,7 @@ const SaldosInicialesForm = ({ distribuidores, elements, onCancel }: Props) => {
     const { selectedBalance } = useContext(InventariosFisicosContext);
 
     const { control, register, formState: { errors, isValid }, handleSubmit, watch, setValue } = useForm<FormType>({
-        defaultValues: selectedBalance?.code ? { // Verifica si hay un balance seleccionado
+        defaultValues: selectedBalance.code !== "" ? {
             registerDate: selectedBalance.showDate.format("YYYY-MM-DDTHH:mm"),
             code: selectedBalance.code,
             forceCreation: true,
@@ -46,7 +46,7 @@ const SaldosInicialesForm = ({ distribuidores, elements, onCancel }: Props) => {
                 item: s.item?._id,
                 initialBalance: s.initialBalance || 0 // Inicializamos con 0
             }))
-        } : { // Si no hay balance seleccionado, inicializa con valores predeterminados
+        } : {
             elements: elements.map(e => ({
                 product: e.isProduct ? e._id : undefined,
                 item: e.isItem ? e._id : undefined,
@@ -104,82 +104,74 @@ const SaldosInicialesForm = ({ distribuidores, elements, onCancel }: Props) => {
     ];
 
     const onSubmit = async (data: FormType) => {
-        let res = null;
-        setActive(true);
+        let res = null
+        setActive(true)
 
-        try {
-            if (selectedBalance.code !== "") {
-                const formData: IInitialBalanceUpdateBody['data'] = {
-                    users: [{
-                        role: data.role,
-                        user: data.user,
-                        code: selectedBalance.code,
-                        lastRegisterDate: selectedBalance.showDate.format("YYYY-MM-DDTHH:mm"),
-                        elements: data.elements.map(d => {
-                            const res: IInitialBalanceBody['data']['users'][0]['elements'][0] = { initialBalance: Number(String(d.initialBalance)) };
-                            if (d.item) { res.item = d.item; }
-                            if (d.product) { res.product = d.product; }
-                            return res;
-                        })
-                    }]
-                };
-
-                res = await PhysicalInventoryApiConector.update({ data: formData });
-            } else {
-                const formData: IInitialBalanceBody['data'] = {
-                    registerDate: data.registerDate,
-                    users: [{
-                        role: data.role,
-                        user: data.user,
-                        forceCreation: true,
-                        elements: data.elements.map(d => {
-                            const res: IInitialBalanceBody['data']['users'][0]['elements'][0] = { initialBalance: Number(String(d.initialBalance)) };
-                            if (d.item) { res.item = d.item; }
-                            if (d.product) { res.product = d.product; }
-                            return res;
-                        })
-                    }]
-                };
-
-                res = await PhysicalInventoryApiConector.createBalance({ data: formData });
+        if (selectedBalance.code !== "") {
+            const formData: IInitialBalanceUpdateBody['data'] = {
+                users: [{
+                    role: data.role,
+                    user: data.user,
+                    code: selectedBalance.code,
+                    lastRegisterDate: selectedBalance.showDate.format("YYYY-MM-DDTHH:mm"),
+                    elements: data.elements.map(d => {
+                        const res: IInitialBalanceBody['data']['users'][0]['elements'][0] = { initialBalance: Number(String(d.initialBalance)), }
+                        if (d.item) { res.item = d.item }
+                        if (d.product) { res.product = d.product }
+                        return res
+                    })
+                }]
             }
 
-            if (res) {
-                if ('message' in res) {
-                    if ('results' in res) {
-                        toast.success(`Ingreso registrado correctamente`, { position: "bottom-center" });
-                        window.location.reload();
-                    } else {
-                        let messageResult = res.message;
-                        console.log(messageResult);
+            res = await PhysicalInventoryApiConector.update({ data: formData })
+        } else {
+            const formData: IInitialBalanceBody['data'] = {
+                registerDate: data.registerDate,
+                users: [{
+                    role: data.role,
+                    user: data.user,
+                    forceCreation: true,
+                    elements: data.elements.map(d => {
+                        const res: IInitialBalanceBody['data']['users'][0]['elements'][0] = { initialBalance: Number(String(d.initialBalance)), }
+                        if (d.item) { res.item = d.item }
+                        if (d.product) { res.product = d.product }
+                        return res
+                    })
+                }]
+            }
 
-                        // Manejo del mensaje de error relacionado con el stock
-                        if (res.message.includes("no tiene stock")) {
-                            const itemId = res.message.split(" ")[2];
-                            const productName = elements.find(e => e._id === itemId)?.name || itemId;
-                            messageResult = messageResult.replace(itemId, productName);
-                        }
+            res = await PhysicalInventoryApiConector.createBalance({ data: formData });
+        }
 
-                        toast.error(messageResult, { position: "bottom-right", duration: 2000 });
-                        setActive(false);
-                    }
-                } else if ('mensaje' in res) {
-                    toast.success(res.mensaje, { position: "bottom-center" });
+        if (res) {
+            if ('message' in res) {
+                if ('results' in res) {
+                    toast.success(`Ingreso registrado correctamente`, { position: "bottom-center" });
                     window.location.reload();
                 } else {
-                    toast.error("Upps error al registrar el ingreso", { position: "bottom-right" });
-                    setActive(false);
+                    let messageResult = res.message
+                    console.log(messageResult)
+                    if (res.message.includes("no tiene stock")) {
+                        const itemId = res.message.split(" ")[2]
+                        const productName = elements.find(e => e._id === itemId)?.name || itemId
+                        messageResult = messageResult.replace(itemId, productName)
+                    }
+
+                    toast.error(messageResult, { position: "bottom-right", duration: 2000 });
+                    setActive(false)
                 }
+            } else if ('mensaje' in res) {
+                toast.success(res.mensaje, { position: "bottom-center" });
+                window.location.reload();
             } else {
                 toast.error("Upps error al registrar el ingreso", { position: "bottom-right" });
-                setActive(false);
+                setActive(false)
             }
-        } catch (error) {
-            console.error("Error al procesar el formulario:", error);
-            toast.error("Ocurrió un error inesperado. Por favor, intenta nuevamente.", { position: "bottom-right" });
-            setActive(false);
+        } else {
+            toast.error("Upps error al registrar el ingreso", { position: "bottom-right" });
+            setActive(false)
         }
-    };
+    }
 
     const validateHours = (val: string): string | boolean => {
         const check = moment(val)

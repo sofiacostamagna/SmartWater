@@ -1,19 +1,48 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useState, useMemo } from "react";
 import { Transaction } from "../../../../../../type/Cash";
 import { formatDateTime } from "../../../../../../utils/helpers";
-import "./TableArqueoCaja.css";
-import DataTable, { TableColumn } from 'react-data-table-component';
+import DataTable, { TableColumn } from "react-data-table-component";
 import toast from "react-hot-toast";
 import Modal from "../../../../EntryComponents/Modal";
 import { FinalizarArqueoCaja } from "../FinalizarArqueoCaja/FinalizarArqueoCaja";
 import { CashRegisterApiConector } from "../../../../../../api/classes";
 import { ArqueoDeCajaContext } from "../ArqueoDeCajaContext";
+import moment from "moment";
 
+const TableArqueoCaja = ({ cash }: { cash: Transaction[] }) => {
+  const { selectedTransaction, setSelectedTransaction } = useContext(ArqueoDeCajaContext);
+  const [filteredCash, setFilteredCash] = useState<Transaction[]>([]); // Estado para los datos filtrados
+  const [onlyOpen, setOnlyOpen] = useState<boolean>(false); // Estado para mostrar solo abiertos
 
-const TableArqueoCaja = ({ cash }: {
-  cash: Transaction[];
-}) => {
-  const { selectedTransaction, setSelectedTransaction } = useContext(ArqueoDeCajaContext)
+  const fetchCashData = async () => {
+    try {
+      let response;
+      if (onlyOpen) {
+        // Fetch only open records
+        response = await CashRegisterApiConector.get({ filters: { open: true } });
+      } else {
+        // Fetch all open records and closed records from the last 31 days
+        const finalDate = moment().format("YYYY-MM-DD");
+        const initialDate = moment().subtract(31, "days").format("YYYY-MM-DD");
+        response = await CashRegisterApiConector.get({
+          filters: { initialDate, finalDate },
+        });
+      }
+
+      if (response) {
+        setFilteredCash(response || []);
+      } else {
+        setFilteredCash([]);
+      }
+    } catch (error) {
+      console.error("Error al obtener los datos:", error);
+      toast.error("Error al cargar los datos.");
+    }
+  };
+
+  useEffect(() => {
+    fetchCashData();
+  }, [onlyOpen]);
 
   const deleteRegistry = useCallback((id: string) => {
     toast.error(
@@ -25,7 +54,9 @@ const TableArqueoCaja = ({ cash }: {
           <div className="flex justify-center">
             <button
               className="bg-red-500 px-3 py-1 rounded-lg ml-2 text-white"
-              onClick={() => { toast.dismiss(t.id); }}
+              onClick={() => {
+                toast.dismiss(t.id);
+              }}
             >
               Cancelar
             </button>
@@ -38,19 +69,19 @@ const TableArqueoCaja = ({ cash }: {
                   if (response.mensaje) {
                     toast.success(response.mensaje, {
                       position: "top-center",
-                      duration: 2000
+                      duration: 2000,
                     });
-                    window.location.reload();
+                    fetchCashData(); // Recargar los datos después de eliminar
                   } else if (response.error) {
                     toast.error(response.error, {
                       position: "top-center",
-                      duration: 2000
+                      duration: 2000,
                     });
                   }
                 } else {
                   toast.error("Error al eliminar cliente", {
                     position: "top-center",
-                    duration: 2000
+                    duration: 2000,
                   });
                 }
               }}
@@ -63,47 +94,66 @@ const TableArqueoCaja = ({ cash }: {
       {
         className: "shadow-md dark:shadow-slate-400 border border-slate-100 bg-main-background",
         icon: null,
-        position: "top-center"
+        position: "top-center",
       }
     );
-  }, [])
-
+  }, []);
 
   const columns: TableColumn<Transaction>[] = useMemo<TableColumn<Transaction>[]>(() => [
     {
       name: "Hora de apertura",
-      selector: row => (row.startDate ? formatDateTime(row?.startDate, 'numeric', '2-digit', '2-digit', true, true) : "N/A"),
-      width: "15%"
+      selector: (row) =>
+        row.startDate
+          ? formatDateTime(row?.startDate, "numeric", "2-digit", "2-digit", true, true)
+          : "N/A",
+      width: "15%",
     },
     {
       name: "Hora de cierre",
-      selector: row => (row.endDate ? formatDateTime(row?.endDate, 'numeric', '2-digit', '2-digit', true, true) : "N/A"),
-      width: "15%"
+      selector: (row) =>
+        row.endDate
+          ? formatDateTime(row?.endDate, "numeric", "2-digit", "2-digit", true, true)
+          : "N/A",
+      width: "15%",
     },
     {
-      name: "Distibuidor",
-      selector: row => `${row.userDetails?.fullName || "Distribuidor desconocido"} ${row.userDetails?.role === 'admin' ? "(Administrador)" : ""}`,
-      width: "30%"
+      name: "Distribuidor",
+      selector: (row) =>
+        `${row.userDetails?.fullName || "Distribuidor desconocido"} ${
+          row.userDetails?.role === "admin" ? "(Administrador)" : ""
+        }`,
+      width: "30%",
     },
     {
       name: "Sistema",
-      selector: row => `${(row?.initialAmount || 0) + (row?.incomeCashTotal || 0) + (row?.creditBillsSales || 0) - ((row?.expenseCashTotal || 0) + (row?.expenseCurrentAccountTotal || 0)) || "N/A"} Bs`,
-      width: "10%"
+      selector: (row) =>
+        `${
+          (row?.initialAmount || 0) +
+          (row?.incomeCashTotal || 0) +
+          (row?.creditBillsSales || 0) -
+          ((row?.expenseCashTotal || 0) + (row?.expenseCurrentAccountTotal || 0)) || "N/A"
+        } Bs`,
+      width: "10%",
     },
     {
       name: "Diferencia",
-      selector: row => `${!row.creationMethod || row.creationMethod === 'open-close' ? "0" : (row?.difference.toLocaleString() || "N/A")} Bs`,
-      width: "10%"
+      selector: (row) =>
+        `${
+          !row.creationMethod || row.creationMethod === "open-close"
+            ? "0"
+            : row?.difference.toLocaleString() || "N/A"
+        } Bs`,
+      width: "10%",
     },
     {
       name: "Estado",
-      selector: row => row?.state ? "Abierto" : "Cerrado",
-      width: "10%"
+      selector: (row) => (row?.state ? "Abierto" : "Cerrado"),
+      width: "10%",
     },
     {
       name: "Acciones",
       width: "10%",
-      cell: (row) =>
+      cell: (row) => (
         <div className="flex items-center w-full gap-4">
           <button onClick={() => setSelectedTransaction(row)}>
             <i className="fa fa-eye text-blue_bright" aria-hidden="true"></i>
@@ -112,62 +162,75 @@ const TableArqueoCaja = ({ cash }: {
             <i className="fa fa-trash text-red-500" aria-hidden="true"></i>
           </button>
         </div>
-    }
-  ], [deleteRegistry, setSelectedTransaction])
-
-  const [onlyOpen, setOnlyOpen] = useState<boolean>(false)
+      ),
+    },
+  ], [deleteRegistry, setSelectedTransaction]);
 
   return (
     <>
       <div className="text-font-color">
-        <DataTable columns={columns}
-          actions={<div className="text-sm flex items-center gap-3">
-            <input type="checkbox" id="only" checked={onlyOpen} onChange={(e) => { setOnlyOpen(!onlyOpen) }} className="accent-blue_custom" />
-            <label htmlFor="only">Mostrar solo abiertos</label>
-          </div>}
+        <DataTable
+          columns={columns}
+          actions={
+            <div className="text-sm flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="only"
+                checked={onlyOpen}
+                onChange={(e) => {
+                  setOnlyOpen(!onlyOpen);
+                }}
+                className="accent-blue_custom"
+              />
+              <label htmlFor="only">Mostrar solo abiertos</label>
+            </div>
+          }
           className="no-border"
-          data={onlyOpen ? cash.filter(c => c.state) : cash}
-          pagination={(onlyOpen ? cash.filter(c => c.state) : cash).length > 5}
+          data={filteredCash} // Use filteredCash for proper filtering
+          pagination={filteredCash.length > 5} // Enable pagination based on filteredCash
           paginationPerPage={5}
           noDataComponent={<div className="min-h-[150px] flex items-center justify-center">Sin registros</div>}
-          paginationComponent={({ currentPage, onChangePage, rowCount, rowsPerPage }) => (<>
+          paginationComponent={({ currentPage, onChangePage, rowCount, rowsPerPage }) => (
             <div className="flex gap-2 w-full justify-end mt-2">
-              <>
-                <div>
-                  <button
-                    type="button"
-                    className="bg-blue-600 shadow-xl disabled:bg-gray-500 disabled:cursor-not-allowed px-2 py-0.5 rounded-sm"
-                    onClick={() => onChangePage(currentPage - 1, rowCount)}
-                    disabled={currentPage === 1}
-                  >
-                    <i className="fa-solid fa-angle-left text-white"></i>
-                  </button>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-paginado">{`${currentPage} de ${Math.ceil(rowCount / rowsPerPage)} `}</span>
-                </div>
-                <div>
-                  <button
-                    type="button"
-                    className="bg-blue-600 shadow-xl disabled:bg-gray-500 disabled:cursor-not-allowed px-2 py-0.5 rounded-sm"
-                    onClick={() => onChangePage(currentPage + 1, rowCount)}
-                    disabled={currentPage === Math.ceil(rowCount / rowsPerPage)}
-                  >
-                    <i className="fa-solid fa-angle-right text-white"></i>
-                  </button>
-                </div>
-              </>
+              <button
+                type="button"
+                className="bg-blue-600 shadow-xl disabled:bg-gray-500 disabled:cursor-not-allowed px-2 py-0.5 rounded-sm"
+                onClick={() => onChangePage(currentPage - 1, rowCount)}
+                disabled={currentPage === 1}
+              >
+                <i className="fa-solid fa-angle-left text-white"></i>
+              </button>
+              <div className="flex items-center">
+                <span className="text-paginado">{`${currentPage} de ${Math.ceil(rowCount / rowsPerPage)}`}</span>
+              </div>
+              <button
+                type="button"
+                className="bg-blue-600 shadow-xl disabled:bg-gray-500 disabled:cursor-not-allowed px-2 py-0.5 rounded-sm"
+                onClick={() => onChangePage(currentPage + 1, rowCount)}
+                disabled={currentPage === Math.ceil(rowCount / rowsPerPage)}
+              >
+                <i className="fa-solid fa-angle-right text-white"></i>
+              </button>
             </div>
-          </>)} />
+          )}
+        />
       </div>
-
-      <Modal isOpen={!!selectedTransaction} onClose={() => setSelectedTransaction(undefined)} className="w-[90%] lg:w-1/2">
+      <Modal
+        isOpen={!!selectedTransaction}
+        onClose={() => setSelectedTransaction(undefined)}
+        className="w-[90%] lg:w-1/2"
+      >
         <h2 className="text-blue_custom font-semibold p-6 pb-0 sticky top-0 z-30 bg-main-background">
           Detalles de arqueo
         </h2>
-
         <div className="px-6">
-          <FinalizarArqueoCaja cash={selectedTransaction} handleOnSubmit={() => { setSelectedTransaction(undefined); window.location.reload() }} />
+          <FinalizarArqueoCaja
+            cash={selectedTransaction}
+            handleOnSubmit={() => {
+              setSelectedTransaction(undefined);
+              fetchCashData(); // Recargar los datos después de finalizar
+            }}
+          />
         </div>
       </Modal>
     </>

@@ -8,6 +8,8 @@ export interface IRegistersGetParams extends FilteredSearch {
         hour?: string;
         open?: boolean;
         creationMethod?: "open-close" | 'create';
+        initialDate?: string; // New filter for start date
+        finalDate?: string;   // New filter for end date
     }
 }
 

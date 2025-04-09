@@ -7,13 +7,13 @@ export abstract class CashRegisterApiConector {
     private static root_path = "/cashRegisters"
 
     static async get(params: IRegistersGetParams): Promise<Transaction[] | null> {
-        const query = generateQueryString(params)
+        const query = generateQueryString(params);
 
         try {
-            const res = await ApiConnector.getInstance().get(`${this.root_path}${query ? `?${query}` : ''}`)
-            return res.data
+            const res = await ApiConnector.getInstance().get(`${this.root_path}${query ? `?${query}` : ''}`);
+            return res.data;
         } catch (error) {
-            return null
+            return null;
         }
     }
 

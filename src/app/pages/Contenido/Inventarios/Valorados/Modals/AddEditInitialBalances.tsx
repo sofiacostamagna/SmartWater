@@ -102,23 +102,35 @@ const AddEditInitialBalances = ({ elemnts, onCancel }: Props) => {
                 register={register}
                 errors={errors.elements?.[index]?.quantity}
                 validateAmount={(val: number) => val < 0 ? "Indica un valor" : true}
+                onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+                    if (e.target.value === "0") e.target.value = ""; // Borra el "0" al hacer clic
+                }}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                    if (e.target.value === "") e.target.value = "0"; // Restaura el "0" si no se escribió nada
+                }}
             />
         },
-        {
-            name: "Costo unitario",
-            cell: (row, index) => <Input
-                type="number"
-                className="no-spinner outline-dashed my-4 text-right"
-                min={0}
-                step={0.01}
-                label="Costo unitario"
-                isVisibleLable
-                name={`elements.${index}.unitPrice`}
-                register={register}
-                errors={errors.elements?.[index]?.unitPrice}
-                validateAmount={(val: number) => val < 0 ? "Indica un valor" : true}
-            />
-        },
+            {
+                name: "Costo unitario",
+                cell: (row, index) => <Input
+                    type="number"
+                    className="no-spinner outline-dashed my-4 text-right"
+                    min={0}
+                    step={0.01}
+                    label="Costo unitario"
+                    isVisibleLable
+                    name={`elements.${index}.unitPrice`}
+                    register={register}
+                    errors={errors.elements?.[index]?.unitPrice}
+                    validateAmount={(val: number) => val < 0 ? "Indica un valor" : true}
+                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+                        if (e.target.value === "0") e.target.value = ""; // Borra el "0" al hacer clic
+                    }}
+                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                        if (e.target.value === "") e.target.value = "0"; // Restaura el "0" si no se escribió nada
+                    }}
+                />
+            }
     ], [errors.elements, register])
 
     return (

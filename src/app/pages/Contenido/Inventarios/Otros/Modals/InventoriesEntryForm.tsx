@@ -17,6 +17,8 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
     const [selectedElement, setSelectedElement] = useState<string>("");
+    const [touchedElement, setTouchedElement] = useState<boolean>(false);
+    const [isDropdownTouched, setIsDropdownTouched] = useState<boolean>(false); // Nuevo estado
 
     const { register, setValue, formState: { errors, isValid }, getValues, reset } = useForm<EntryItemBody & { element: string }>({
         mode: 'all'
@@ -44,9 +46,11 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
 
     const handleSelectElement = (id: string) => {
         setSelectedElement(id);
-        setValue("element", id, { shouldValidate: true }); // Update the form state and trigger validation
-        setSearchTerm(""); // Clear the search term after selection
+        setValue("element", id, { shouldValidate: true }); // Actualiza el estado del formulario
+        setSearchTerm(""); // Limpia el término de búsqueda
         setShowDropdown(false);
+        setTouchedElement(false); // Reinicia el estado de interacción
+        setIsDropdownTouched(false); // Reinicia el estado de apertura del dropdown
     };
 
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -83,11 +87,10 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
         reset({ element: "", quantity: 0, inputType: "production_received" });
     };
 
-
-
     return (
         <div className="w-full rounded-[15px] shadow dark:shadow-gray-300 p-4">
-            <div className={`w-full flex justify-between cursor-pointer ${isOpen ? "border-b-2 pb-4 mb-4" : ""}`} onClick={() => setIsOpen(!isOpen)}>
+            <div className={`w-full flex justify-between cursor-pointer ${isOpen ? "border-b-2 pb-4 mb-4" : ""}`} 
+                 onClick={() => setIsOpen(!isOpen)}>
                 <h4 className="text-sm font-semibold">Agregar productos e items</h4>
                 <i className={`fa-solid fa-angle-down transition-all ${isOpen && "rotate-180"}`}></i>
             </div>
@@ -108,18 +111,19 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                     {...register("inputType", {
                                         required: "Debes seleccionar un tipo"
                                     })}
-                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black dark:disabled:bg-zinc-700 disabled:bg-zinc-300"
+                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
                                 >
                                     <option value="production_received">Ingreso de producción</option>
                                     <option value="adjustment_entry">Ingreso por ajuste</option>
                                 </select>
                                 {errors.inputType && (
                                     <span className="text-red-500 font-normal text-sm font-pricedown">
-                                        <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                                        <i className="fa-solid fa-triangle-exclamation"></i>
                                         {errors.inputType.message}
                                     </span>
                                 )}
                             </motion.div>
+
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -131,9 +135,17 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                 <div className="relative" ref={dropdownRef}>
                                     <div
                                         className={`p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                            errors.element ? "outline-4 outline-red-500" : showDropdown ? "outline-4 outline-black" : "outline-2 outline-black"
+                                            errors.element
+                                                ? showDropdown
+                                                    ? "outline-4 outline-red-500" // Borde rojo grueso si hay un error y el selector está abierto
+                                                    : "outline-2 outline-red-500" // Borde rojo delgado si hay un error y el selector está cerrado
+                                                : showDropdown
+                                                ? "outline-4 outline-black" // Borde negro grueso si el selector está abierto
+                                                : "outline-2 outline-black" // Borde negro delgado por defecto
                                         } cursor-pointer flex justify-between items-center`}
-                                        onClick={() => setShowDropdown(!showDropdown)}
+                                        onClick={() => {
+                                            setShowDropdown(!showDropdown);
+                                        }}
                                     >
                                         <span>
                                             {selectedElement
@@ -158,12 +170,7 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                                     <div
                                                         key={row._id}
                                                         className="p-2 hover:bg-blue-500 hover:text-white cursor-pointer"
-                                                        onClick={() => {
-                                                            setSelectedElement(row._id);
-                                                            setValue("element", row._id, { shouldValidate: true });
-                                                            setShowDropdown(false);
-                                                            setSearchTerm("");
-                                                        }}
+                                                        onClick={() => handleSelectElement(row._id)}
                                                     >
                                                         {row.name}
                                                     </div>
@@ -180,13 +187,15 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                         required: "Debes seleccionar un elemento"
                                     })}
                                 />
+                                {/* Mensaje de error si no se seleccionó nada */}
                                 {errors.element && (
-                                    <span className="text-red-500 font-normal text-sm font-pricedown">
+                                    <span className="text-red-500 font-normal text-sm font-pricedown outline-4 outline-red-500 ">
                                         <i className="fa-solid fa-triangle-exclamation"></i>{" "}
                                         {errors.element.message || "Debes seleccionar un elemento"}
                                     </span>
                                 )}
                             </motion.div>
+
                             <Input
                                 label="Cantidad"
                                 name="quantity"
@@ -199,29 +208,18 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                 containerClassName="flex-1"
                                 validateAmount={(value) => {
                                     const val = parseFloat(value);
-                                    return val > 0 ? Number.isInteger(val) ? true : "La cantidad debe ser un número entero" : "La cantidad debe ser mayor que 0";
+                                    return val > 0 
+                                        ? Number.isInteger(val) 
+                                            ? true 
+                                            : "La cantidad debe ser un número entero" 
+                                        : "La cantidad debe ser mayor que 0";
                                 }}
                             />
-                        </div> 
-                        {/* <div className="flex gap-4 justify-between text-sm flex-wrap"> */}
+                        </div>
 
-{/* <Input
-        label="Costo unitario"
-        name="unitPrice"
-        register={register}
-        type="number"
-        min={0}
-        step={0.01}
-        className="no-spinner"
-        sufix={<span>Bs</span>}
-        errors={errors.unitPrice}
-        required
-        containerClassName='flex-1'
-        validateAmount={(val: number) => val > 0 ? true : "El costo debe ser mayor que 0"}
-    /> */}
-{/* </div> */}                        <button
+                        <button
                             type="button"
-                            onClick={() => onSubmit()}
+                            onClick={onSubmit}
                             disabled={!isValid}
                             className="disabled:bg-gray-400 bg-blue-500 py-2 text-sm px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600"
                         >
@@ -234,7 +232,7 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                             {inventories.map((product, index) => (
                                 <motion.div
                                     key={index}
-                                    className={`mb-2 flex justify-between items-center bg-blocks dark:border-blocks shadow-md border shadow-zinc-300/25 rounded-2xl p-2 ${index === edit && "border-2 border-blue_custom"}`}
+                                    className={`mb-2 flex justify-between items-center bg-blocks shadow-md border rounded-2xl p-2 ${index === edit && "border-2 border-blue_custom"}`}
                                     initial={{ opacity: 0, y: -20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 20 }}
@@ -242,11 +240,15 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                                 >
                                     <div className="flex flex-col gap-4 p-1">
                                         <p className="font-semibold">
-                                            {elements.find((e) => (product.item ? product.item : product.product) === e._id)?.name || "Producto desconocido"}
+                                            {elements.find((e) => (product.item || product.product) === e._id)?.name || "Producto desconocido"}
                                         </p>
                                         <div className="flex gap-1 items-start flex-col">
                                             <p className="text-xs">Cantidad: {product.quantity}</p>
-                                            <p className="text-xs">{product.inputType === "production_received" ? "Ingreso de producción" : "Ingreso por ajuste"}</p>
+                                            <p className="text-xs">
+                                                {product.inputType === "production_received" 
+                                                    ? "Ingreso de producción" 
+                                                    : "Ingreso por ajuste"}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2 items-center flex-col pr-4 pt-2 h-full">

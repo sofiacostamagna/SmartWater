@@ -30,7 +30,7 @@ export interface ILoanBody {
     data: {
         user: string;
         client: string;
-        contract: {
+        contract?: { // Made optional
             link: string | null;
             validUntil: string;
         };

@@ -1,10 +1,12 @@
 import { FC, useContext, useEffect } from "react";
+import React from "react"; // Ensure React is imported for JSX
 import "./RegistrarPrestamos.css";
 import { PageTitle } from "../../../components/PageTitle/PageTitle";
 import { useNavigate } from "react-router-dom";
 import { client } from "../../Clientes/ClientesContext";
 import { loan, PrestamosContext } from "../PrestamosContext";
 import RegisterPrestaForm from "../../../EntryComponents/RegisterPrestamo";
+
 
 const RegistrarPrestamos: FC = () => {
     const { setSelectedClient, selectedClient, selectedLoan, setSelectedLoan } = useContext(PrestamosContext);

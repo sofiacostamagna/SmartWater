@@ -57,18 +57,23 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
     }
     setActive(true);
     const userData: UserData | null = AuthService.getUser();
-
-    if (!!data.contract.validUntil) {
+  
+    if (!!data.contract?.validUntil) {
       const selected = moment(data.contract.validUntil)
       const now = moment.tz("America/La_Paz").set({ date: selected.date(), month: selected.month(), year: selected.year() }).add(5, 'minute')
       data.contract.validUntil = now.format("YYYY-MM-DDTHH:mm")
     }
+  
+    const contract = data.contract?.validUntil || data.contract?.link
+        ? data.contract
+        : undefined;
 
     const values: ILoanBody['data'] = {
       ...data,
-      detail: addedProducts.map((item) => ({
-        item: products?.find((p) => p.name === item.item)?._id || "",
-        quantity: item.quantity,
+      contract,
+      detail: addedProducts.map((product) => ({
+        item: products?.find((p) => p.name === product.item)?._id || "",
+        quantity: product.quantity,
       })),
       user: userData?._id || "",
       client: selectedClient._id,
@@ -159,6 +164,12 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
   const handleAddProduct = () => {
     const item = watch("detail")[0].item;
     const quantity = watch("detail")[0].quantity;
+    
+    if (!item || quantity <= 0) {
+      toast.error("Selecciona un producto y cantidad válida");
+      return;
+    }
+
     if (editar !== null) {
       const updatedProducts = [...addedProducts];
       updatedProducts[editar.index] = { item, quantity };
@@ -184,8 +195,26 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
   );
 
   const handleDeleteProduct = (index: number) => {
-    setAddedProducts(addedProducts.filter((_, i) => i !== index));
+    const updatedProducts = addedProducts.filter((_, i) => i !== index);
+    setAddedProducts(updatedProducts);
+
+    if (editar) {
+      if (index === editar.index) {
+        setEditar(null);
+        setValue("detail.0.item", "");
+        setValue("detail.0.quantity", 0);
+      } else if (index < editar.index) {
+        setEditar(prev => ({ ...prev!, index: prev!.index - 1 }));
+      }
+    }
   };
+
+  useEffect(() => {
+    if (editar === null) {
+      setValue("detail.0.item", "");
+      setValue("detail.0.quantity", 0);
+    }
+  }, [editar, setValue]);
 
   useEffect(() => {
     if (selectedLoan) {
@@ -196,21 +225,21 @@ const RegisterPrestaForm = ({ selectedClient, selectedLoan }: { selectedClient: 
   useEffect(() => {
     if (selectedLoan && products) {
       setAddedProducts(selectedLoan.detail.map(i => ({
-        item: products?.find((p) => p._id === i.item)?.name || "Item no encontrado",
+        item: products.find((p) => p._id === i.item)?.name || "Item no encontrado",
         quantity: i.quantity,
-      })))
+      })));
 
-      if (selectedLoan.contract.link && selectedLoan.contract.validUntil) {
-        setValue('contract.link', selectedLoan.contract.link)
-        setValue('contract.validUntil', new Date(selectedLoan.contract.validUntil || "").toISOString().split("T")[0])
+      if (selectedLoan.contract?.link && selectedLoan.contract?.validUntil) {
+        setValue('contract.link', selectedLoan.contract.link);
+        setValue('contract.validUntil', new Date(selectedLoan.contract.validUntil).toISOString().split("T")[0]);
       }
 
       if (selectedLoan.comment) {
-        setValue('comment', selectedLoan.comment)
+        setValue('comment', selectedLoan.comment);
       }
-      setLoading(false)
+      setLoading(false);
     }
-  }, [selectedLoan, products, setValue, setLoading])
+  }, [selectedLoan, products, setValue, setLoading]);
 
   return (
     <form

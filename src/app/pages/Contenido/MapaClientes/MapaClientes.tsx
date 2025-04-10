@@ -179,6 +179,18 @@ const MapaClientes: React.FC = () => {
     }
   }, [searchParam])
 
+  // Función para manejar clics en los íconos de estado
+  const handleStatusFilterClick = (statusKey: ClientStatus) => {
+    const newFilters = { ...savedFilters, status: [statusKey] }; // Reemplazar con el nuevo filtro
+    handleFilterChange(newFilters); // Actualizar los filtros
+  };
+
+  const clearFilters = () => {
+    setSavedFilters({});
+    setQuery({ filters: btoa(JSON.stringify({ filters: {} })) });
+    fetchClients(); // Recargar los clientes sin filtros
+  };
+
   return (
     <>
       <div className="px-10 overflow-auto h-screen flex justify-between flex-col">
@@ -194,68 +206,105 @@ const MapaClientes: React.FC = () => {
             <div
               style={{
                 display: "flex",
-                gap: "35px",
+                gap: "15px", // Reduce el espacio entre los elementos
                 marginBottom: "25px",
                 marginTop: "10px",
+                alignItems: "center", // Alinea verticalmente los elementos
               }}
             >
-              <div className="Mapaclientes-ubicacion">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="30"
-                  viewBox="0 0 31 47"
-                  fill="#DD0000"
+              {/* Contenedor de los íconos SVG */}
+              <div style={{ display: "flex", gap: "15px" }}>
+                {/* Pedidos en curso */}
+                <div
+                  className="Mapaclientes-ubicacion"
+                  onClick={() => handleStatusFilterClick("inProgress")}
+                  style={{ cursor: "pointer" }}
                 >
-                  <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
-                </svg>
-                <span>Pedidos en curso</span>
-              </div>
-              <div className="Mapaclientes-ubicacion">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="30"
-                  viewBox="0 0 31 47"
-                  fill="#FF5C00"
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="30"
+                    viewBox="0 0 31 47"
+                    fill="#DD0000"
+                  >
+                    <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
+                  </svg>
+                  <span>Pedidos en curso</span>
+                </div>
+
+                {/* Clientes deben renovar */}
+                <div
+                  className="Mapaclientes-ubicacion"
+                  onClick={() => handleStatusFilterClick("renewClient")}
+                  style={{ cursor: "pointer" }}
                 >
-                  <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
-                </svg>
-                <span>Clientes deben renovar</span>
-              </div>
-              <div className="Mapaclientes-ubicacion">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="30"
-                  viewBox="0 0 31 47"
-                  fill="#960090"
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="30"
+                    viewBox="0 0 31 47"
+                    fill="#FF5C00"
+                  >
+                    <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
+                  </svg>
+                  <span>Clientes deben renovar</span>
+                </div>
+
+                {/* Resto de clientes */}
+                <div
+                  className="Mapaclientes-ubicacion"
+                  onClick={() => handleStatusFilterClick("default")}
+                  style={{ cursor: "pointer" }}
                 >
-                  <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
-                </svg>
-                <span>Resto de clientes</span>
-              </div>
-              <div className="Mapaclientes-ubicacion">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="30"
-                  viewBox="0 0 31 47"
-                  fill="#1FAF38"
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="30"
+                    viewBox="0 0 31 47"
+                    fill="#960090"
+                  >
+                    <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
+                  </svg>
+                  <span>Resto de clientes</span>
+                </div>
+
+                {/* Pedidos atendidos */}
+                <div
+                  className="Mapaclientes-ubicacion"
+                  onClick={() => handleStatusFilterClick("attended")}
+                  style={{ cursor: "pointer" }}
                 >
-                  <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
-                </svg>
-                <span>Pedidos atendidos</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="30"
+                    viewBox="0 0 31 47"
+                    fill="#1FAF38"
+                  >
+                    <path d="M31 15.3918C31 23.8925 23.1159 33.807 15.5 47C6.78557 33.807 0 23.8925 0 15.3918C0 6.89115 6.93959 0 15.5 0C24.0604 0 31 6.89115 31 15.3918Z" />
+                  </svg>
+                  <span>Pedidos atendidos</span>
+                </div>
               </div>
+
+              {/* Botón Quitar Filtros */}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm text-blue-500 underline hover:text-blue-700"
+                style={{ marginLeft: "10px" }} // Espaciado sutil entre los íconos y el botón
+              >
+                Quitar filtros
+              </button>
             </div>
           }
           search={(val: string) => setSearchTerm(val)}
           onFilter={() => setShowFiltro(true)}
           hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
         ></FiltroPaginado>
+     
         <div className="MapaClientes w-full flex-1 pb-10">
           <LeafletMap onAdd={() => setSelectedOption(true)} clients={clients} latitude={latitude} longitude={longitude} setSelectedClient={setSelectedClient} />
-          {/* <GoogleMaps apiKey={api} onAdd={() => setShowModal(true)} clients={filteredClients} /> */}
         </div>
       </div>
 

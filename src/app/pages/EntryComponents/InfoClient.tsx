@@ -13,6 +13,10 @@ import moment from "moment";
 import { useGlobalContext } from "../../SmartwaterContext";
 
 const InfoClient = ({ client }: { client: Client }) => {
+
+  const clientType = client.isAgency ? "agency" : "habitual"; 
+
+
   const [city, setCity] = useState<{
     zone: string | undefined;
     district: string | undefined;
@@ -72,6 +76,7 @@ const InfoClient = ({ client }: { client: Client }) => {
   };
 
   useEffect(() => {
+
     if (client.district) getZone(client.zone, client.district, client._id);
   }, [client._id, client.district, client.zone, getZone]);
   return (
@@ -156,6 +161,10 @@ const InfoClient = ({ client }: { client: Client }) => {
                   <p>{client.code}</p>
                 </li>
                 <li className="flex gap-2 text-base">
+                  <p className="font-semibold">Tipo de cliente:</p>
+                  <p>{clientType === "agency" ? "Agencia" : "Habitual"}</p>
+                </li>
+                <li className="flex gap-2 text-base">
                   <p className="font-semibold">Datos de facturación:</p>
                   <p>{client.billingInfo?.name || "N/A"}</p>
                 </li>
@@ -225,6 +234,7 @@ const InfoClient = ({ client }: { client: Client }) => {
                       : "Sin venta"}
                   </p>
                 </li>
+             
               </ul>
             </div>
           </>

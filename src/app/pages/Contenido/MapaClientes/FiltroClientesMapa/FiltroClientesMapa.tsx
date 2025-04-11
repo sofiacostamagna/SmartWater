@@ -125,48 +125,70 @@ const FiltroClientesMapa = ({
   const filterClients = (filters: IClientFilters): IClientGetParams['filters'] & { status?: ClientStatus[] } => {
     const result: IClientGetParams['filters'] & { status?: ClientStatus[] } = {}
 
+    // Filter by date range
     if (filters.fromDate) { result.initialDate = filters.fromDate.toString() }
     if (filters.toDate) { result.finalDate = filters.toDate.toString() }
 
+    // Filter by zones
     if (filters.zones) {
       const zones = Object.values(filters.zones).filter(z => !!z).join(',')
       if (zones !== "") { result.zone = zones }
     }
 
+    // Filter by status
     if (filters.status) {
       const statuses = Object.values(filters.status).filter(z => !!z)
       if (statuses.length > 0) { result.status = statuses as ClientStatus[] }
     }
 
+    // Filter by renewal days
     if (filters.daysSinceRenewed > 0) { result.renewedAgo = filters.daysSinceRenewed }
     if (filters.daysToRenew > 0) { result.renewedIn = filters.daysToRenew }
 
+    // Ensure only registered clients for contracts and loans
+    result.isClient = true;
+
+    // Filter by contracts
     if (!((!!filters.withContract && !!filters.withoutContract) || (!filters.withContract && !filters.withoutContract))) {
-      result.hasContract = filters.withContract
+      result.hasContract = filters.withContract;
     }
 
+    // Filter by credit
     if (!((!!filters.withCredit && !!filters.withoutCredit) || (!filters.withCredit && !filters.withoutCredit))) {
       result.hasCredit = filters.withCredit
     }
 
+
+    // Filter by expired contracts
     if (!((!!filters.withExpiredContract && !!filters.withoutExpiredContract) || (!filters.withExpiredContract && !filters.withoutExpiredContract))) {
-      result.hasExpiredContracts = filters.withExpiredContract
+      result.hasExpiredContracts = filters.withExpiredContract;
     }
 
+    // Filter by loans
     if (!((!!filters.withLoans && !!filters.withoutLoans) || (!filters.withLoans && !filters.withoutLoans))) {
-      result.hasLoan = filters.withLoans
+      result.hasLoan = filters.withLoans;
+
+      // Ensure only clients with loans > 0 are included
+      if (filters.withLoans) {
+        result.loansActive = true; // Custom property to indicate loans > 0
+      }
     }
 
+    // Filter by orders (include both registered and unregistered clients)
     if (!((!!filters.withOrder && !!filters.withoutOrder) || (!filters.withOrder && !filters.withoutOrder))) {
-      result.hasOrder = filters.withOrder
+      result.hasOrder = filters.withOrder;
+      delete result.isClient; // Remove restriction for orders
     }
 
+    // Filter by selected distributors
     if (selectedDists.length > 0) {
       const dists = selectedDists.map(z => z._id).join(',')
       if (dists !== "") { result.user = dists }
     }
 
-    return result
+    console.log("Generated Filters:", result); // Debugging to check loansActive
+
+    return result;
   };
 
   return (

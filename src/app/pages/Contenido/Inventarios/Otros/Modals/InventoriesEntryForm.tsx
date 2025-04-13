@@ -20,7 +20,7 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
     const [touchedElement, setTouchedElement] = useState<boolean>(false);
     const [isDropdownTouched, setIsDropdownTouched] = useState<boolean>(false); // Nuevo estado
 
-    const { register, setValue, formState: { errors, isValid }, getValues, reset } = useForm<EntryItemBody & { element: string }>({
+    const { register, setValue, formState: { errors, isValid }, getValues, reset, trigger  } = useForm<EntryItemBody & { element: string }>({
         mode: 'all'
     });
 
@@ -44,14 +44,14 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
             row.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-    const handleSelectElement = (id: string) => {
-        setSelectedElement(id);
-        setValue("element", id, { shouldValidate: true }); // Actualiza el estado del formulario
-        setSearchTerm(""); // Limpia el término de búsqueda
-        setShowDropdown(false);
-        setTouchedElement(false); // Reinicia el estado de interacción
-        setIsDropdownTouched(false); // Reinicia el estado de apertura del dropdown
-    };
+ // Modificar el manejador de selección de elemento
+const handleSelectElement = (id: string) => {
+    setSelectedElement(id);
+    setValue("element", id, { shouldValidate: true, shouldTouch: true }); // <-- Añadir shouldTouch
+    setSearchTerm("");
+    setShowDropdown(false);
+    trigger("element"); // <-- Forzar validación después de selección
+  };
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -59,15 +59,26 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setShowDropdown(false);
+                trigger("element"); // <-- Forzar validación al cerrar
+                setTouchedElement(true);
             }
         };
+    
+     
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [dropdownRef, trigger]);
 
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [dropdownRef]);
+    const handleBlur = () => {
+        if (!selectedElement) {
+            setValue("element", "", { shouldValidate: true }); // Trigger validation
+        }
+    };
 
+
+    
     const onSubmit = () => {
         const res: EntryItemBody = {
             quantity: parseFloat(String(getValues('quantity'))),
@@ -133,65 +144,87 @@ const InventoriesEntryForm = ({ elements, updateDetails, handleDeleteElement, in
                             >
                                 <label>Item o producto</label>
                                 <div className="relative" ref={dropdownRef}>
-                                    <div
-                                        className={`p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                            errors.element
-                                                ? showDropdown
-                                                    ? "outline-4 outline-red-500" // Borde rojo grueso si hay un error y el selector está abierto
-                                                    : "outline-2 outline-red-500" // Borde rojo delgado si hay un error y el selector está cerrado
-                                                : showDropdown
-                                                ? "outline-4 outline-black" // Borde negro grueso si el selector está abierto
-                                                : "outline-2 outline-black" // Borde negro delgado por defecto
-                                        } cursor-pointer flex justify-between items-center`}
-                                        onClick={() => {
-                                            setShowDropdown(!showDropdown);
-                                        }}
-                                    >
-                                        <span>
-                                            {selectedElement
-                                                ? elements.find((e) => e._id === selectedElement)?.name || "Seleccione uno"
-                                                : "Seleccione uno"}
-                                        </span>
-                                        <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
-                                    </div>
-                                    {showDropdown && (
-                                        <div className="absolute top-full left-0 w-full bg-white border border-black rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200">
-                                            <div className="p-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Buscar..."
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                    className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 mb-2"
-                                                />
-                                            </div>
-                                            {filteredElements.length > 0 ? (
-                                                filteredElements.map((row) => (
-                                                    <div
-                                                        key={row._id}
-                                                        className="p-2 hover:bg-blue-500 hover:text-white cursor-pointer"
-                                                        onClick={() => handleSelectElement(row._id)}
-                                                    >
-                                                        {row.name}
+                                    <div className="relative w-full">
+                                        <motion.div
+                                            key={selectedElement}
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                                errors.element
+                                                    ? showDropdown
+                                                        ? "outline-4 outline-red-500" // Red border if error and dropdown open
+                                                        : "outline-2 outline-red-500" // Thin red border if error and dropdown closed
+                                                    : showDropdown
+                                                    ? "outline-4 outline-black" // Thick black border if dropdown open
+                                                    : "outline-2 outline-black" // Default thin black border
+                                            } flex justify-between items-center`}
+                                            onClick={() => setShowDropdown(!showDropdown)}
+                                            onBlur={() => {
+                                                if (!selectedElement) {
+                                                    setValue("element", "", { shouldValidate: true }); // Trigger validation
+                                                }
+                                            }}
+                                        >
+                                            <span>
+                                                {selectedElement
+                                                    ? elements.find((e) => e._id === selectedElement)?.name || "Seleccione uno"
+                                                    : "Seleccione uno"}
+                                            </span>
+                                            <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
+                                        </motion.div>
+                                        {showDropdown && (
+                                            <div
+                                                ref={dropdownRef}
+                                                className="absolute top-full translate-y-3 left-1/2 -translate-x-[45%] w-[250px] border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+                                            >
+                                                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                                        placeholder="Buscar..."
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                    />
+                                                </div>
+                                                {filteredElements.length > 0 ? (
+                                                    filteredElements.map((row) => (
+                                                        <div
+                                                            key={row._id}
+                                                            className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                            onClick={() => {
+                                                                handleSelectElement(row._id);
+                                                                setShowDropdown(false);
+                                                            }}
+                                                        >
+                                                            {row.name}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                                        Sin opciones
                                                     </div>
-                                                ))
-                                            ) : (
-                                                <div className="p-2 text-gray-500">Sin opciones</div>
-                                            )}
-                                        </div>
-                                    )}
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <input
                                     type="hidden"
                                     {...register("element", {
-                                        required: "Debes seleccionar un elemento"
+                                        required: "Debes seleccionar un elemento", // Ensure this validation rule is applied
+                                        validate: (value) => {
+                                            return value && value.trim() !== ""
+                                                ? true
+                                                : "Debes seleccionar un elemento válido"; // Custom validation message
+                                        },
                                     })}
                                 />
-                                {/* Mensaje de error si no se seleccionó nada */}
+                                {/* Error message styled like "Cantidad" */}
                                 {errors.element && (
-                                    <span className="text-red-500 font-normal text-sm font-pricedown outline-4 outline-red-500 ">
+                                    <span className="text-red-500 font-normal text-sm font-pricedown">
                                         <i className="fa-solid fa-triangle-exclamation"></i>{" "}
-                                        {errors.element.message || "Debes seleccionar un elemento"}
+                                        {errors.element.message}
                                     </span>
                                 )}
                             </motion.div>

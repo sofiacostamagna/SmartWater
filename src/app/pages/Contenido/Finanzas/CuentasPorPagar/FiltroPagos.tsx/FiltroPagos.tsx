@@ -60,6 +60,7 @@ const FiltroPagos = ({
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
     const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [providerTouched, setProviderTouched] = useState<boolean>(false);
 
     const filteredProviders = searchTerm.trim() === ""
         ? providers
@@ -85,6 +86,11 @@ const FiltroPagos = ({
         setSelectedProvider(id);
         setValue("provider", id, { shouldValidate: true });
         setShowDropdown(false);
+    };
+
+    const handleProviderBlur = () => {
+        setProviderTouched(true);
+        trigger("provider"); // Trigger validation only after interaction
     };
 
     useEffect(() => {
@@ -215,7 +221,7 @@ const FiltroPagos = ({
                         <div className="relative" ref={dropdownRef}>
                             <div
                                 className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                    errors.provider
+                                    errors.provider && providerTouched
                                         ? showDropdown
                                             ? "outline-4 outline-red-500"
                                             : "outline-2 outline-red-500"
@@ -224,6 +230,7 @@ const FiltroPagos = ({
                                             : "outline-2 outline-black"
                                 } flex justify-between items-center`}
                                 onClick={() => setShowDropdown(!showDropdown)}
+                                onBlur={handleProviderBlur}
                             >
                                 <span>
                                     {selectedProvider
@@ -273,7 +280,7 @@ const FiltroPagos = ({
                                 },
                             })}
                         />
-                        {errors.provider && (
+                        {errors.provider && providerTouched && (
                             <span className="text-red-500 font-normal text-sm font-pricedown">
                                 <i className="fa-solid fa-triangle-exclamation"></i>{" "}
                                 {errors.provider.message}

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import "./FiltroEgresosGastos.css";
 import { EgresosGastosContext } from "../EgresosGastosContext";
 import { Providers } from "../../../../../../type/providers";
@@ -56,10 +56,72 @@ const FiltroEgresosGastos = ({
     onChange: (filters: IExpensesGetParams['filters']) => void;
     initialFilters: IExpensesGetParams['filters'];
 }) => {
-    const { register, handleSubmit, setValue, watch } = useForm<IExpenseFilter>({
+    const { register, handleSubmit, setValue, watch, trigger, formState: { errors } } = useForm<IExpenseFilter>({
         defaultValues: initialState || {},
     });
     const [selectedDists, setSelectedDists] = useState<User[]>([])
+    const [providerSearchTerm, setProviderSearchTerm] = useState<string>("");
+    const [accountSearchTerm, setAccountSearchTerm] = useState<string>("");
+    const [showProviderDropdown, setShowProviderDropdown] = useState<boolean>(false);
+    const [showAccountDropdown, setShowAccountDropdown] = useState<boolean>(false);
+    const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+    const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+    const providerDropdownRef = useRef<HTMLDivElement>(null);
+    const accountDropdownRef = useRef<HTMLDivElement>(null);
+    const [providerTouched, setProviderTouched] = useState<boolean>(false);
+    const [accountTouched, setAccountTouched] = useState<boolean>(false);
+
+    const handleProviderBlur = () => {
+        setProviderTouched(true);
+        trigger("provider"); // Trigger validation only after interaction
+    };
+
+    const handleAccountBlur = () => {
+        setAccountTouched(true);
+        trigger("accountEntry"); // Trigger validation only after interaction
+    };
+
+    const filteredProviders = providerSearchTerm.trim() === ""
+        ? providers
+        : providers.filter((provider) =>
+            (provider.fullName || "Sin nombre").toLowerCase().includes(providerSearchTerm.toLowerCase())
+        );
+
+    const filteredAccounts = accountSearchTerm.trim() === ""
+        ? accounts
+        : accounts.filter((account) =>
+            account.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
+        );
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (providerDropdownRef.current && !providerDropdownRef.current.contains(event.target as Node)) {
+                setShowProviderDropdown(false);
+                trigger("provider");
+            }
+            if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+                setShowAccountDropdown(false);
+                trigger("accountEntry");
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [providerDropdownRef, accountDropdownRef, trigger]);
+
+    const handleSelectProvider = (id: string) => {
+        setSelectedProvider(id);
+        setValue("provider", id, { shouldValidate: true });
+        setShowProviderDropdown(false);
+    };
+
+    const handleSelectAccount = (id: string) => {
+        setSelectedAccount(id);
+        setValue("accountEntry", id, { shouldValidate: true });
+        setShowAccountDropdown(false);
+    };
 
     useEffect(() => {
         if (initialFilters) {
@@ -197,17 +259,74 @@ const FiltroEgresosGastos = ({
                         className="w-full sm:w-1/2 flex flex-col gap-2"
                     >
                         <label>Proveedor</label>
-                        <select
-                            {...register("provider")}
-                            className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-                        >
-                            <option value="">
-                                Sin selección
-                            </option>
-                            {
-                                providers.map(p => <option key={p._id} value={p._id}>{p.fullName}</option>)
-                            }
-                        </select>
+                        <div className="relative" ref={providerDropdownRef}>
+                            <div
+                                className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                    errors.provider && providerTouched
+                                        ? showProviderDropdown
+                                            ? "outline-4 outline-red-500"
+                                            : "outline-2 outline-red-500"
+                                        : showProviderDropdown
+                                            ? "outline-4 outline-black"
+                                            : "outline-2 outline-black"
+                                } flex justify-between items-center`}
+                                onClick={() => setShowProviderDropdown(!showProviderDropdown)}
+                                onBlur={handleProviderBlur}
+                            >
+                                <span>
+                                    {selectedProvider
+                                        ? providers.find((p) => p._id === selectedProvider)?.fullName || "Sin selección"
+                                        : "Sin selección"}
+                                </span>
+                                <i className={`fa-solid fa-angle-down transition-transform ${showProviderDropdown ? "rotate-180" : ""}`}></i>
+                            </div>
+                            {showProviderDropdown && (
+                                <div
+                                    className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start mt-2"
+                                >
+                                    <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                        <input
+                                            type="text"
+                                            className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                            placeholder="Buscar..."
+                                            onChange={(e) => setProviderSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    {filteredProviders.length > 0 ? (
+                                        filteredProviders.map((provider) => (
+                                            <div
+                                                key={provider._id}
+                                                className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                onClick={() => handleSelectProvider(provider._id)}
+                                            >
+                                                {provider.fullName || "Sin nombre"}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            Sin opciones
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="hidden"
+                            {...register("provider", {
+                                required: "Debes seleccionar un proveedor",
+                                validate: (value) => {
+                                    return value && value.trim() !== ""
+                                        ? true
+                                        : "Debes seleccionar un proveedor válido";
+                                },
+                            })}
+                        />
+                        {errors.provider && providerTouched && (
+                            <span className="text-red-500 font-normal text-sm font-pricedown">
+                                <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                                {errors.provider.message}
+                            </span>
+                        )}
                     </motion.div>
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -217,17 +336,74 @@ const FiltroEgresosGastos = ({
                         className="w-full sm:w-1/2 flex flex-col gap-2"
                     >
                         <label>Cuenta contable</label>
-                        <select
-                            {...register("accountEntry")}
-                            className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-                        >
-                            <option value="">
-                                Sin selección
-                            </option>
-                            {
-                                accounts.map(p => <option key={p._id} value={p._id}>{p.name}</option>)
-                            }
-                        </select>
+                        <div className="relative" ref={accountDropdownRef}>
+                            <div
+                                className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                    errors.accountEntry && accountTouched
+                                        ? showAccountDropdown
+                                            ? "outline-4 outline-red-500"
+                                            : "outline-2 outline-red-500"
+                                        : showAccountDropdown
+                                            ? "outline-4 outline-black"
+                                            : "outline-2 outline-black"
+                                } flex justify-between items-center`}
+                                onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+                                onBlur={handleAccountBlur}
+                            >
+                                <span>
+                                    {selectedAccount
+                                        ? accounts.find((a) => a._id === selectedAccount)?.name || "Sin selección"
+                                        : "Sin selección"}
+                                </span>
+                                <i className={`fa-solid fa-angle-down transition-transform ${showAccountDropdown ? "rotate-180" : ""}`}></i>
+                            </div>
+                            {showAccountDropdown && (
+                                <div
+                                    className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start mt-2"
+                                >
+                                    <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                        <input
+                                            type="text"
+                                            className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                            placeholder="Buscar..."
+                                            onChange={(e) => setAccountSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    {filteredAccounts.length > 0 ? (
+                                        filteredAccounts.map((account) => (
+                                            <div
+                                                key={account._id}
+                                                className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                onClick={() => handleSelectAccount(account._id)}
+                                            >
+                                                {account.name}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            Sin opciones
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="hidden"
+                            {...register("accountEntry", {
+                                required: "Debes seleccionar una cuenta contable",
+                                validate: (value) => {
+                                    return value && value.trim() !== ""
+                                        ? true
+                                        : "Debes seleccionar una cuenta contable válida";
+                                },
+                            })}
+                        />
+                        {errors.accountEntry && accountTouched && (
+                            <span className="text-red-500 font-normal text-sm font-pricedown">
+                                <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                                {errors.accountEntry.message}
+                            </span>
+                        )}
                     </motion.div>
                 </div>
 
@@ -399,33 +575,7 @@ const FiltroEgresosGastos = ({
                     </div>
                 </div>
 
-                <div className="w-full flex flex-col gap-2 mb-8">
-                    <label className="font-semibold text-blue_custom">Zonas</label>
-                    <div className="flex flex-wrap gap-x-6 gap-y-4">
-                        {zones
-                            .filter(zone => selectedDists.length > 0 ? selectedDists.some(d => d.zones?.includes(zone._id)) : true)
-                            .map((zone, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center gap-3"
-                                >
-                                    <input
-                                        className="input-check accent-blue_custom"
-                                        type="checkbox"
-                                        {...register(`zones.${zone._id}`)}
-                                        value={zone._id}
-                                        id={`zone-${zone._id}`}
-                                    />
-                                    <label
-                                        htmlFor={`zone-${zone._id}`}
-                                        className="text-sm"
-                                    >
-                                        {zone.name}
-                                    </label>
-                                </div>
-                            ))}
-                    </div>
-                </div>
+               
 
                 <div className="flex justify-between w-full items-center gap-3 px-4">
                     <button

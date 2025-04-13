@@ -45,6 +45,7 @@ const FiltroCuentasPorPagar = ({
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
     const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+    const [providerTouched, setProviderTouched] = useState<boolean>(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const filteredProviders = searchTerm.trim() === ""
@@ -119,6 +120,11 @@ const FiltroCuentasPorPagar = ({
         setShowDropdown(false);
     };
 
+    const handleProviderBlur = () => {
+        setProviderTouched(true);
+        trigger("provider"); // Trigger validation only after interaction
+    };
+
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 flex flex-col gap-2">
             <div className="flex flex-col sm:flex-row mb-4">
@@ -155,7 +161,7 @@ const FiltroCuentasPorPagar = ({
                         <div className="relative" ref={dropdownRef}>
                             <div
                                 className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                    errors.provider
+                                    errors.provider && providerTouched
                                         ? showDropdown
                                             ? "outline-4 outline-red-500"
                                             : "outline-2 outline-red-500"
@@ -164,6 +170,7 @@ const FiltroCuentasPorPagar = ({
                                             : "outline-2 outline-black"
                                 } flex justify-between items-center`}
                                 onClick={() => setShowDropdown(!showDropdown)}
+                                onBlur={handleProviderBlur}
                             >
                                 <span>
                                     {selectedProvider
@@ -213,7 +220,7 @@ const FiltroCuentasPorPagar = ({
                                 },
                             })}
                         />
-                        {errors.provider && (
+                        {errors.provider && providerTouched && (
                             <span className="text-red-500 font-normal text-sm font-pricedown">
                                 <i className="fa-solid fa-triangle-exclamation"></i>{" "}
                                 {errors.provider.message}

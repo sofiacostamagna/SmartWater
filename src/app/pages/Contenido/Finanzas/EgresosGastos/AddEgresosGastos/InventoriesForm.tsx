@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { IExpenseDetailsBody } from "../../../../../../api/types/expenses"
 import { MatchedElement } from "../../../../../../type/Kardex";
 import { useForm } from "react-hook-form";
@@ -16,9 +16,66 @@ const InventoriesForm = ({ elements, updateDetails, handleDeleteElement, invento
     const [isOpen, setIsOpen] = useState<boolean>(true)
     const [edit, setEdit] = useState<number>(-1)
 
-    const { register, setValue, formState: { errors, isValid }, getValues, reset } = useForm<IExpenseDetailsBody['data']['details'][0] & { element: string }>({
+    const { register, setValue, formState: { errors, isValid }, getValues, reset, trigger } = useForm<IExpenseDetailsBody['data']['details'][0] & { element: string }>({
         mode: 'all'
     })
+
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [showDropdown, setShowDropdown] = useState<boolean>(false);
+    const [selectedElement, setSelectedElement] = useState<string>("");
+
+    const filteredElements = searchTerm.trim() === ""
+        ? elements
+        : elements.filter((row) =>
+            row.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLDivElement>(null); // Reference for the dropdown trigger
+
+    const calculateDropdownPosition = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            return {
+                top: rect.bottom + window.scrollY + 12, // Add spacing below the trigger
+                left: rect.left + window.scrollX,
+                width: rect.width + 50, // Make the dropdown slightly wider
+            };
+        }
+        return { top: 0, left: 0, width: "auto" };
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(event.target as Node) &&
+                triggerRef.current &&
+                !triggerRef.current.contains(event.target as Node)
+            ) {
+                setShowDropdown(false);
+                trigger("element"); // Trigger validation for element
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [trigger]);
+
+    const handleSelectElement = (id: string) => {
+        setSelectedElement(id);
+        setValue("element", id, { shouldValidate: true });
+        setSearchTerm("");
+        setShowDropdown(false);
+    };
+
+    const handleBlurElement = () => {
+        if (!selectedElement) {
+            setValue("element", "", { shouldValidate: true }); // Ensure validation is triggered
+            trigger("element");
+        }
+        setShowDropdown(false);
+    };
 
     const setEditElement = (index: number) => {
         setEdit(index)
@@ -77,21 +134,81 @@ const InventoriesForm = ({ elements, updateDetails, handleDeleteElement, invento
                                 className="w-full md:w-1/3 flex flex-col gap-2"
                             >
                                 <label>Item o producto</label>
-                                <select
+                                <div className="relative" ref={triggerRef}>
+                                    <div className="relative w-full">
+                                        <motion.div
+                                            key={selectedElement}
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                                errors.element
+                                                    ? showDropdown
+                                                        ? "outline-4 outline-red-500"
+                                                        : "outline-2 outline-red-500"
+                                                    : showDropdown
+                                                    ? "outline-4 outline-black"
+                                                    : "outline-2 outline-black"
+                                            } flex justify-between items-center`}
+                                            onClick={() => setShowDropdown(!showDropdown)}
+                                            onBlur={handleBlurElement} // Ensure validation is triggered on blur
+                                        >
+                                            <span>
+                                                {selectedElement
+                                                    ? elements.find((e) => e._id === selectedElement)?.name || "Seleccione uno"
+                                                    : "Seleccione uno"}
+                                            </span>
+                                            <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
+                                        </motion.div>
+                                        {showDropdown && (
+                                            <div
+                                                ref={dropdownRef}
+                                                style={{
+                                                    position: "fixed",
+                                                    ...calculateDropdownPosition(),
+                                                    zIndex: 1050,
+                                                }}
+                                                className="border rounded-md shadow-md max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+                                            >
+                                                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                                        placeholder="Buscar..."
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                    />
+                                                </div>
+                                                {filteredElements.length > 0 ? (
+                                                    filteredElements.map((row) => (
+                                                        <div
+                                                            key={row._id}
+                                                            className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                            onClick={() => handleSelectElement(row._id)}
+                                                        >
+                                                            {row.name}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                                        Sin opciones
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <input
+                                    type="hidden"
                                     {...register("element", {
-                                        required: "Debes seleccionar un elemento"
+                                        required: "Debes seleccionar un elemento",
+                                        validate: (value) => {
+                                            return value && value.trim() !== ""
+                                                ? true
+                                                : "Debes seleccionar un elemento válido";
+                                        },
                                     })}
-                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-                                >
-                                    <option value={""}>Seleccione uno</option>
-                                    {
-                                        elements.map((row, index) => (
-                                            <option value={row._id} key={index}>
-                                                {row.name}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
+                                />
                                 {errors.element && (
                                     <span className="text-red-500 font-normal text-sm font-pricedown">
                                         <i className="fa-solid fa-triangle-exclamation"></i>{" "}

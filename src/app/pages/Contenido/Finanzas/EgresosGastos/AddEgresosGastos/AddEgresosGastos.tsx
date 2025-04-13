@@ -1,4 +1,4 @@
-import { ChangeEvent, useContext, useEffect, useState } from 'react'
+import { ChangeEvent, useContext, useEffect, useRef, useState } from 'react'
 import { Providers } from '../../../../../../type/providers';
 import { Account } from '../../../../../../type/AccountEntry';
 import { IExpenseDetailsBody } from '../../../../../../api/types/expenses';
@@ -22,12 +22,15 @@ interface Props {
 
 const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => {
   const [active, setActive] = useState(false);
-  const { selectedExpense } = useContext(EgresosGastosContext)
+  const { selectedExpense } = useContext(EgresosGastosContext);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid }, watch, setValue
+    formState: { errors, isValid },
+    watch,
+    setValue,
+    trigger, 
   } = useForm<IExpenseDetailsBody['data']>({
     defaultValues: selectedExpense._id !== "" ? {
       accountEntry: selectedExpense.accountEntry._id,
@@ -46,8 +49,43 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
     mode: 'all'
   });
 
-  const [selectedPayment, setSelectedPayment] = useState<"credit" | 'cta' | 'cash'>('cash')
-  const [inventories, setInventories] = useState<IExpenseDetailsBody['data']['details']>([])
+  const [selectedPayment, setSelectedPayment] = useState<"credit" | 'cta' | 'cash'>('cash');
+  const [inventories, setInventories] = useState<IExpenseDetailsBody['data']['details']>([]);
+
+  const [searchTerm, setSearchTerm] = useState<string>(""); // Estado para búsqueda
+  const [showDropdown, setShowDropdown] = useState<boolean>(false); // Controla visibilidad del dropdown
+  const [selectedProvider, setSelectedProvider] = useState<string>(""); // Estado para proveedor seleccionado
+
+  const filteredProviders = searchTerm.trim() === ""
+    ? provider // Mostrar todos si no hay búsqueda
+    : provider.filter((row) =>
+      row.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelectProvider = (id: string) => {
+      setSelectedProvider(id);
+      setValue("provider", id, { shouldValidate: true, shouldTouch: true }); 
+      setShowDropdown(false);
+      trigger("provider"); 
+    };
+    
+  
+    
+  const [searchTermAccount, setSearchTermAccount] = useState<string>(""); 
+  const [showDropdownAccount, setShowDropdownAccount] = useState<boolean>(false); 
+  const [selectedAccount, setSelectedAccount] = useState<string>(""); 
+  const filteredAccounts = searchTermAccount.trim() === ""
+    ? accounts // Mostrar todos si no hay búsqueda
+    : accounts.filter((row) =>
+      row.name?.toLowerCase().includes(searchTermAccount.toLowerCase())
+    );
+
+    const handleSelectAccount = (id: string) => {
+      setSelectedAccount(id);
+      setValue("accountEntry", id, { shouldValidate: true, shouldTouch: true });
+      setShowDropdownAccount(false);
+      trigger("accountEntry");
+    };
 
   const onSubmit: SubmitHandler<IExpenseDetailsBody['data']> = async (data) => {
     let res = null
@@ -89,6 +127,8 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
       setActive(false)
     }
   };
+
+  
 
   useEffect(() => {
     if (selectedExpense._id !== "") {
@@ -177,6 +217,62 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
     setInventories(inventories.filter((_, i) => i !== index));
   };
 
+  const providerDropdownRef = useRef<HTMLDivElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isProviderTouched, setIsProviderTouched] = useState<boolean>(false); // Estado para saber si el dropdown de proveedor fue tocado
+  const [isAccountTouched, setIsAccountTouched] = useState<boolean>(false); // Estado para saber si el dropdown de tipo de gasto fue tocado
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (
+            providerDropdownRef.current &&
+            !providerDropdownRef.current.contains(event.target as Node)
+        ) {
+            setShowDropdown(false);
+            trigger("provider"); // Trigger validation for provider
+        }
+        if (
+            accountDropdownRef.current &&
+            !accountDropdownRef.current.contains(event.target as Node)
+        ) {
+            setShowDropdownAccount(false);
+            trigger("accountEntry"); // Trigger validation for accountEntry
+        }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+}, [trigger]);
+
+
+
+  const handleBlurProvider = () => {
+    if (isProviderTouched && !selectedProvider) {
+        setValue("provider", "", { shouldValidate: true }); // Validar si no se selecciona nada
+        trigger("provider"); // Forzar validación
+    }
+    setShowDropdown(false); // Cerrar el dropdown
+};
+
+const handleBlurAccount = () => {
+    if (isAccountTouched && !selectedAccount) {
+        setValue("accountEntry", "", { shouldValidate: true }); // Validar si no se selecciona nada
+        trigger("accountEntry"); // Forzar validación
+    }
+    setShowDropdownAccount(false); // Cerrar el dropdown
+};
+
+const handleProviderClick = () => {
+    setShowDropdown(!showDropdown);
+    setIsProviderTouched(true); // Marcar el dropdown como tocado
+};
+
+const handleAccountClick = () => {
+    setShowDropdownAccount(!showDropdownAccount);
+    setIsAccountTouched(true); // Marcar el dropdown como tocado
+};
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -222,21 +318,61 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
           className="w-full sm:w-1/2 flex flex-col gap-2 flex-1"
         >
           <label>Proveedor</label>
-          <select
+          <div className="relative" ref={providerDropdownRef}>
+            <div
+              className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                errors.provider
+                  ? showDropdown
+                    ? "outline-4 outline-red-500"
+                    : "outline-2 outline-red-500"
+                  : showDropdown
+                    ? "outline-4 outline-black"
+                    : "outline-2 outline-black"
+              } flex justify-between items-center`}
+              onClick={handleProviderClick}
+              onBlur={handleBlurProvider}
+            >
+              <span>
+                {selectedProvider
+                  ? provider.find((p) => p._id === selectedProvider)?.fullName || "Seleccione un proveedor"
+                  : "Seleccione un proveedor"}
+              </span>
+              <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
+            </div>
+            {showDropdown && (
+              <div className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background">
+                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                  <input
+                    type="text"
+                    className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1"
+                    placeholder="Buscar..."
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                {filteredProviders.length > 0 ? (
+                  filteredProviders.map((row) => (
+                    <div
+                      key={row._id}
+                      className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer"
+                      onClick={() => handleSelectProvider(row._id)}
+                    >
+                      {row.fullName || "Sin nombre"}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-gray-500">
+                    Sin opciones
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <input
+            type="hidden"
             {...register("provider", {
-              required: "Debes seleccionar un proveedor"
+              required: "Debes seleccionar un proveedor",
             })}
-            className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black dark:disabled:bg-zinc-700 disabled:bg-zinc-300"
-          >
-            <option value={""}>Seleccione un proveedor</option>
-            {
-              provider.map((row, index) => (
-                <option value={row._id} key={index}>
-                  {row.fullName || "Sin nombre"}
-                </option>
-              ))
-            }
-          </select>
+          />
           {errors.provider && (
             <span className="text-red-500 font-normal text-sm font-pricedown">
               <i className="fa-solid fa-triangle-exclamation"></i>{" "}
@@ -252,21 +388,61 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
           className="w-full sm:w-1/2 flex flex-col gap-2"
         >
           <label>Tipo de gasto</label>
-          <select
+          <div className="relative" ref={accountDropdownRef}>
+            <div
+              className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                errors.accountEntry
+                  ? showDropdownAccount
+                    ? "outline-4 outline-red-500"
+                    : "outline-2 outline-red-500"
+                  : showDropdownAccount
+                    ? "outline-4 outline-black"
+                    : "outline-2 outline-black"
+              } flex justify-between items-center`}
+              onClick={handleAccountClick}
+              onBlur={handleBlurAccount}
+            >
+              <span>
+                {selectedAccount
+                  ? accounts.find((a) => a._id === selectedAccount)?.name || "Seleccione una cuenta"
+                  : "Seleccione una cuenta"}
+              </span>
+              <i className={`fa-solid fa-angle-down transition-transform ${showDropdownAccount ? "rotate-180" : ""}`}></i>
+            </div>
+            {showDropdownAccount && (
+              <div className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background">
+                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                  <input
+                    type="text"
+                    className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1"
+                    placeholder="Buscar..."
+                    onChange={(e) => setSearchTermAccount(e.target.value)}
+                  />
+                </div>
+                {filteredAccounts.length > 0 ? (
+                  filteredAccounts.map((row) => (
+                    <div
+                      key={row._id}
+                      className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer"
+                      onClick={() => handleSelectAccount(row._id)}
+                    >
+                      {row.name}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-gray-500">
+                    Sin opciones
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <input
+            type="hidden"
             {...register("accountEntry", {
-              required: "Debes seleccionar una cuenta"
+              required: "Debes seleccionar una cuenta",
             })}
-            className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-          >
-            <option value={""}>Seleccione una cuenta</option>
-            {
-              accounts.map((row, index) => (
-                <option value={row._id} key={index}>
-                  {row.name}
-                </option>
-              ))
-            }
-          </select>
+          />
           {errors.accountEntry && (
             <span className="text-red-500 font-normal text-sm font-pricedown">
               <i className="fa-solid fa-triangle-exclamation"></i>{" "}

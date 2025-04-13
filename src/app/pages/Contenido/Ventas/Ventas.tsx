@@ -177,6 +177,9 @@ const Ventas: FC = () => {
     setQuery({ filters: btoa(JSON.stringify({ ...queryData, pagination: { ...queryData?.pagination, page: 1 }, filters })) })
   };
 
+  // Helper function to capitalize the first letter of a string
+  const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+
   return (
     <>
       <div className="px-10">
@@ -199,7 +202,28 @@ const Ventas: FC = () => {
           hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
           searchPlaceholder="Buscar por nombre o teléfono de cliente"
           infoPedidos={true}
-          infoPedidosData={summary.filter(s => s.cant > 0).map(s => ({ text: `${s.cant} ${s.prod}`, value: `${millify(s.total, { precision: 2 })} Bs` }))}
+          infoPedidosData={Object.values(
+            currentData
+              .flatMap(sale => 
+                sale.detail.map(detail => ({
+                  productId: detail.product,
+                  name: capitalize(products.find(p => p._id === detail.product)?.name || "Producto desconocido"),
+                  quantity: detail.quantity,
+                  total: detail.price * detail.quantity
+                }))
+              )
+              .reduce((acc, item) => {
+                if (!acc[item.productId]) {
+                  acc[item.productId] = { text: item.name, quantity: 0, total: 0 };
+                }
+                acc[item.productId].quantity += item.quantity;
+                acc[item.productId].total += item.total;
+                return acc;
+              }, {} as Record<string, { text: string; quantity: number; total: number }>)
+          ).map(item => ({
+            text: `${item.quantity} ${item.text}`,
+            value: `${item.total.toFixed(2)} Bs` 
+          }))}
           sorted={sort === 'asc' ? "older" : "new"}
           activeFilters={{ ...queryData?.filters, clients: queryData?.clients }}
         >

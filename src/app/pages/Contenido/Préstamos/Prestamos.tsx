@@ -191,7 +191,13 @@ const Prestamos: FC = () => {
           hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
           searchPlaceholder="Buscar por nombre de cliente"
           infoPedidos
-          infoPedidosData={summary.filter(s => s.quantity > 0).map(s => ({ text: s.itenName, value: s.quantity > 9999 ? millify(s.quantity, { precision: 2 }) : `${s.quantity}` }))}
+          infoPedidosData={currentData
+            .flatMap(loan => 
+              loan.detail.map(detail => ({
+                text: `${detail.quantity} ${products.find(p => p._id === detail.item)?.name || "Ítem desconocido"}`,
+                value: `${detail.quantity}`
+              }))
+            )}
           sorted={sort === 'asc' ? "older" : "new"}
         >
           {

@@ -206,7 +206,7 @@ const FiltroProveedores = ({
                         {showProviderDropdown && (
                             <div
                                 style={providerDropdownStyle}
-                                className="border rounded-md shadow-md max-h-60  top-10 overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+                                className="border rounded-md shadow-md max-h-60  overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
                             >
                                 <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
                                     <input

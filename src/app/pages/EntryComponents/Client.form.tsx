@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import Input from "./Inputs";
 import { motion } from "framer-motion";
@@ -255,6 +255,36 @@ const ClientForm = ({
     return !!name && allClients.some(p => p.fullName && p.fullName.trim().toLowerCase() === name.trim().toLowerCase() && p._id !== selectedClient._id)
   }, [name, allClients, selectedClient])
 
+  const [districtSearchTerm, setDistrictSearchTerm] = useState<string>("");
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const districtDropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredDistricts = districtSearchTerm.trim() === ""
+    ? disti
+    : disti.filter((district) =>
+      district.name.toLowerCase().includes(districtSearchTerm.toLowerCase())
+    );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (districtDropdownRef.current && !districtDropdownRef.current.contains(event.target as Node)) {
+        setShowDistrictDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [districtDropdownRef]);
+
+  const handleSelectDistrict = (id: string) => {
+    setSelectedDistrict(id);
+    setValue("district", id, { shouldValidate: true });
+    setShowDistrictDropdown(false);
+  };
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -461,27 +491,54 @@ const ClientForm = ({
           className="w-full flex flex-col gap-2"
         >
           <label>Barrio</label>
-          <select
-            {...register("district", {
-              required: "El barrio es requerido"
-            })}
-            className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-          >
-            {disti && disti.length > 0 ? (
-              <>
-                <option value={""}>Selecciona un barrio</option>
-                {
-                  disti.map((row, index) => (
-                    <option value={row._id} key={index}>
-                      {row.name}
-                    </option>
+          <div className="relative" ref={districtDropdownRef}>
+            <div
+              className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black flex justify-between items-center`}
+              onClick={() => setShowDistrictDropdown(!showDistrictDropdown)}
+            >
+              <span>
+                {selectedDistrict
+                  ? disti.find((d) => d._id === selectedDistrict)?.name || "Sin selección"
+                  : "Selecciona un barrio"}
+              </span>
+              <i className={`fa-solid fa-angle-down transition-transform ${showDistrictDropdown ? "rotate-180" : ""}`}></i>
+            </div>
+            {showDistrictDropdown && (
+              <div
+                className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+              >
+                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                  <input
+                    type="text"
+                    className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                    placeholder="Buscar..."
+                    onChange={(e) => setDistrictSearchTerm(e.target.value)}
+                  />
+                </div>
+                {filteredDistricts.length > 0 ? (
+                  filteredDistricts.map((district, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                      onClick={() => handleSelectDistrict(district._id)}
+                    >
+                      {district.name}
+                    </div>
                   ))
-                }
-              </>
-            ) : (
-              <option value={""}>Sin resultados</option>
+                ) : (
+                  <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                    Sin opciones
+                  </div>
+                )}
+              </div>
             )}
-          </select>
+          </div>
+          <input
+            type="hidden"
+            {...register("district", {
+              required: "El barrio es requerido",
+            })}
+          />
           {errors.district && (
             <span className="text-red-500 font-normal text-sm font-pricedown">
               <i className="fa-solid fa-triangle-exclamation"></i>{" "}
@@ -494,60 +551,32 @@ const ClientForm = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ delay: 0.3 }}
-          className="w-full flex gap-3 text-md items-center col-span-2 max-sm:col-span-1"
+          className="w-full col-span-2 max-sm:col-span-1 relative"
         >
-          <input
-            type="checkbox"
-            {...register("isClient", {
-              onChange: (e) => handleCheckboxChange("isClient"),
-            })}
-            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
-            id="isClient"
+        
+          <Input
+            label="Ubicación GPS"
+            name="address"
+            icon={<i className="fa-solid fa-location-dot text-2xl"></i>}
+            register={register}
+            errors={errors.address}
+            onChange={(e) => {
+              const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(e.target.value)}`;
+              setGoogleMapsUrl(newAddress);
+              setValue('linkAddress', newAddress);
+            }}
           />
-          <label htmlFor="isClient" className="mr-4">
-            Cliente Habitual
-          </label>
-          <input
-            type="checkbox"
-            {...register("isAgency", {
-              onChange: (e) => handleCheckboxChange("isAgency"),
-            })}
-            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
-            id="isAgency"
-          />
-          <label htmlFor="isAgency">Agencia</label>
+
+        
         </motion.div>
-        <ImageUploadField
-          value={watch('ciBackImage')}
-          fieldName={"ciBackImage"}
-          label={"Por favor, adjunta foto del carnet (trasero)"}
-          register={register}
-          setValue={setValue}
-          errors={errors.ciBackImage}
-          required={false}
-        />
-        <ImageUploadField
-          value={watch('ciFrontImage')}
-          fieldName={"ciFrontImage"}
-          label={"Por favor, adjunta foto del carnet (delantero)"}
-          register={register}
-          setValue={setValue}
-          errors={errors.ciFrontImage}
-          required={false}
-        />
-        <ImageUploadField
-          value={watch('storeImage')}
-          fieldName={"storeImage"}
-          label={"Por favor, adjunta foto de la tienda"}
-          register={register}
-          setValue={setValue}
-          errors={errors.storeImage}
-          required={!isJeshua}
-        />
-        <div className="w-full col-span-2 max-sm:col-span-1 relative">
-          <h1 className="text-sm font-medium">
-            Selecciona una ubicación en el mapa
-          </h1>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ delay: 0.3 }}
+          className="w-full col-span-2 max-sm:col-span-1 relative"
+        >
+          <h1 className="text-sm font-medium">Selecciona una ubicación en el mapa</h1>
           <GoogleMapWithSelection
             visible={isOpen}
             disable={mapinteration}
@@ -559,10 +588,6 @@ const ClientForm = ({
               setValue("location.longitude", `${coordinates.lng}`, { shouldValidate: true });
             }}
           />
-
-          <input type="hidden" {...register('location.latitude', { required: true })} className="bg-transparent" />
-          <input type="hidden" {...register('location.longitude', { required: true })} className="bg-transparent" />
-
           <button
             type="button"
             onClick={() => setMapinteration(!mapinteration)}
@@ -570,15 +595,17 @@ const ClientForm = ({
           >
             {mapinteration ? "Editar" : "Bloquear"}
           </button>
-
-          {
-            (errors.location?.latitude || errors.location?.longitude) &&
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <p className="text-sm"> <span className="font-semibold">{watch("location.latitude") || "No definida"}</span></p>
+            <p className="text-sm"> <span className="font-semibold">{watch("location.longitude") || "No definida"}</span></p>
+          </div>
+          {(errors.location?.latitude || errors.location?.longitude) && (
             <span className="text-red-500 font-normal text-sm">
               <i className="fa-solid fa-triangle-exclamation"></i>{" "}
               Ubicación no definida
             </span>
-          }
-        </div>
+          )}
+        </motion.div>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

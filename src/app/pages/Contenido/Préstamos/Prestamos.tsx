@@ -191,13 +191,26 @@ const Prestamos: FC = () => {
           hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
           searchPlaceholder="Buscar por nombre de cliente"
           infoPedidos
-          infoPedidosData={currentData
-            .flatMap(loan => 
-              loan.detail.map(detail => ({
-                text: `${detail.quantity} ${products.find(p => p._id === detail.item)?.name || "Ítem desconocido"}`,
-                value: `${detail.quantity}`
-              }))
-            )}
+          infoPedidosData={Object.values(
+            currentData
+              .flatMap(loan => 
+                loan.detail.map(detail => ({
+                  itemId: detail.item,
+                  name: products.find(p => p._id === detail.item)?.name || "Ítem desconocido",
+                  quantity: detail.quantity
+                }))
+              )
+              .reduce((acc, item) => {
+                if (!acc[item.itemId]) {
+                  acc[item.itemId] = { name: item.name, quantity: 0 };
+                }
+                acc[item.itemId].quantity += item.quantity;
+                return acc;
+              }, {} as Record<string, { name: string; quantity: number }>)
+          ).map(item => ({
+            text: `${item.quantity} ${item.name}`, // Mostrar cantidad y nombre del producto
+            value: `${item.quantity}` // Usar la cantidad como valor
+          }))}
           sorted={sort === 'asc' ? "older" : "new"}
         >
           {

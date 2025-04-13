@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import "./FiltroCuentasPorPagar.css";
 import { CuentasPorPagarContext } from "../CuentasPorPagarContext";
 import { Zone } from "../../../../../../type/City";
@@ -37,11 +37,21 @@ const FiltroCuentasPorPagar = ({
     initialFilters: IExpensesGetParams['filters'];
     isPayment?: boolean;
 }) => {
-    const { register, handleSubmit, setValue } = useForm<IExpenseFilters>({
+    const { register, handleSubmit, setValue, trigger, formState: { errors } } = useForm<IExpenseFilters>({
         defaultValues: initialState || {},
     });
 
     const [selectedDists, setSelectedDists] = useState<User[]>([])
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [showDropdown, setShowDropdown] = useState<boolean>(false);
+    const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredProviders = searchTerm.trim() === ""
+        ? providers
+        : providers.filter((provider) =>
+            (provider.fullName || "Sin nombre").toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     useEffect(() => {
         if (initialFilters) {
@@ -61,6 +71,20 @@ const FiltroCuentasPorPagar = ({
             }
         }
     }, [initialFilters, setValue, distribuidores])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowDropdown(false);
+                trigger("provider"); // Trigger validation on close
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef, trigger]);
 
     const { setShowFiltro } = useContext(CuentasPorPagarContext);
 
@@ -87,6 +111,12 @@ const FiltroCuentasPorPagar = ({
         }
 
         return result
+    };
+
+    const handleSelectProvider = (id: string) => {
+        setSelectedProvider(id);
+        setValue("provider", id, { shouldValidate: true });
+        setShowDropdown(false);
     };
 
     return (
@@ -122,16 +152,73 @@ const FiltroCuentasPorPagar = ({
                         className="w-full sm:w-1/2 flex flex-col gap-2 my-4"
                     >
                         <label>Proveedor o beneficiario</label>
-                        <select {...register("provider")} className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black">
-                            <option value="">Seleccione un proveedor</option>
-                            {
-                                providers.map((row, index) => (
-                                    <option value={row._id} key={index}>
-                                        {row.fullName || "Sin nombre"}
-                                    </option>
-                                ))
-                            }
-                        </select>
+                        <div className="relative" ref={dropdownRef}>
+                            <div
+                                className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                    errors.provider
+                                        ? showDropdown
+                                            ? "outline-4 outline-red-500"
+                                            : "outline-2 outline-red-500"
+                                        : showDropdown
+                                            ? "outline-4 outline-black"
+                                            : "outline-2 outline-black"
+                                } flex justify-between items-center`}
+                                onClick={() => setShowDropdown(!showDropdown)}
+                            >
+                                <span>
+                                    {selectedProvider
+                                        ? providers.find((p) => p._id === selectedProvider)?.fullName || "Sin nombre"
+                                        : "Seleccione un proveedor"}
+                                </span>
+                                <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
+                            </div>
+                            {showDropdown && (
+                                <div
+                                    className="absolute top-full translate-y-3 left-1/2 -translate-x-[50%] w-[270px] border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+                                >
+                                    <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                        <input
+                                            type="text"
+                                            className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                            placeholder="Buscar..."
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    {filteredProviders.length > 0 ? (
+                                        filteredProviders.map((provider) => (
+                                            <div
+                                                key={provider._id}
+                                                className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                onClick={() => handleSelectProvider(provider._id)}
+                                            >
+                                                {provider.fullName || "Sin nombre"}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            Sin opciones
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="hidden"
+                            {...register("provider", {
+                                required: "Debes seleccionar un proveedor",
+                                validate: (value) => {
+                                    return value && value.trim() !== ""
+                                        ? true
+                                        : "Debes seleccionar un proveedor válido";
+                                },
+                            })}
+                        />
+                        {errors.provider && (
+                            <span className="text-red-500 font-normal text-sm font-pricedown">
+                                <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                                {errors.provider.message}
+                            </span>
+                        )}
                     </motion.div>
 
                     <div className="w-full flex flex-col gap-2 my-6">
@@ -199,33 +286,6 @@ const FiltroCuentasPorPagar = ({
                         </div>
                     </div>
 
-                    <div className="w-full flex flex-col gap-2 mb-8">
-                        <label className="font-semibold text-blue_custom">Zonas</label>
-                        <div className="flex flex-wrap gap-x-6 gap-y-4">
-                            {zones
-                                .filter(zone => selectedDists.length > 0 ? selectedDists.some(d => d.zones?.includes(zone._id)) : true)
-                                .map((zone, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center gap-3"
-                                    >
-                                        <input
-                                            className="input-check accent-blue_custom"
-                                            type="checkbox"
-                                            {...register(`zones.${zone._id}`)}
-                                            value={zone._id}
-                                            id={`zone-${zone._id}`}
-                                        />
-                                        <label
-                                            htmlFor={`zone-${zone._id}`}
-                                            className="text-sm"
-                                        >
-                                            {zone.name}
-                                        </label>
-                                    </div>
-                                ))}
-                        </div>
-                    </div>
                 </>
             }
 

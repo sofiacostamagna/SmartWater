@@ -574,29 +574,7 @@ const ClientForm = ({
           />
           <label htmlFor="isAgency">Agencia</label>
         </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ delay: 0.3 }}
-          className="w-full col-span-2 max-sm:col-span-1 relative"
-        >
-        
-          <Input
-            label="Ubicación GPS"
-            name="address"
-            icon={<i className="fa-solid fa-location-dot text-2xl"></i>}
-            register={register}
-            errors={errors.address}
-            onChange={(e) => {
-              const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(e.target.value)}`;
-              setGoogleMapsUrl(newAddress);
-              setValue('linkAddress', newAddress);
-            }}
-          />
-
-        
-        </motion.div>
+      
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -633,6 +611,29 @@ const ClientForm = ({
               Ubicación no definida
             </span>
           )}
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ delay: 0.3 }}
+          className="w-full col-span-2 max-sm:col-span-1 relative mb-5"
+        >
+        
+          <Input
+            label="Ubicación GPS"
+            name="address"
+            icon={<i className="fa-solid fa-location-dot text-2xl"></i>}
+            register={register}
+            errors={errors.address}
+            onChange={(e) => {
+              const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(e.target.value)}`;
+              setGoogleMapsUrl(newAddress);
+              setValue('linkAddress', newAddress);
+            }}
+          />
+
+        
         </motion.div>
         <motion.div
           initial={{ opacity: 0 }}

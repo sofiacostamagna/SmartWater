@@ -12,6 +12,7 @@ const CuadroPagosProveedor = ({
 }) => {
     return (
         <>
+            {console.log("Invoice Date:", invoice.date)}
             <div className="CuadroCuentasPorCobrar-container">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div className="CuadroVentaCliente-header">
@@ -34,7 +35,7 @@ const CuadroPagosProveedor = ({
                 </div>
                 <div>
                     <div className="CuadroVentaCliente-text">
-                        <span>Fecha: <span className="text-blue_custom">{formatDateTime(invoice.date, 'numeric', '2-digit', '2-digit', false, true)}</span></span>
+                        <span>Fecha: <span className="text-blue_custom">{formatDateTime(new Date(invoice.date).toISOString(), 'numeric', '2-digit', '2-digit', true, true)}</span></span>
                     </div>
                 </div>
             </div>

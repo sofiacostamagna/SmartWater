@@ -162,7 +162,7 @@ const CuadroPrestamo: FC<Prestamo> = ({
                         loan.created,
                         "numeric",
                         "2-digit",
-                        "2-digit"
+                        "2-digit", true,true
                       )}
                     </span>
                   </div>

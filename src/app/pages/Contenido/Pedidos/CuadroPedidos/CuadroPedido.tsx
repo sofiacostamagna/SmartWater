@@ -232,6 +232,15 @@ const CuadroPedido = ({ order, products, zones }: Props) => {
               }
             </div>
 
+              {/* Muestra la imagen del cliente */}
+              <div >
+                        {order.created && (
+                          <span className="block my-2 text-xs text-blue_custom">
+                            {formatDateTime(order.created, "numeric", "2-digit", "2-digit", true, true)}
+                          </span>
+                        )}
+              </div>
+
             {/* Productos del pedido */}
             <div className="flex flex-wrap CuadroVentaCliente-productos items-end justify-end w-[calc(100%_-_30px)]">
               <div className="w-full max-h-28 overflow-y-auto mb-6">
@@ -299,7 +308,7 @@ const CuadroPedido = ({ order, products, zones }: Props) => {
                 <div className="PedidosCurso-infoEntrega flex flex-col gap-1 items-center">
                   <span>Fecha de atención</span>
                   <span className="text-blue_custom">
-                    {formatDateTime(order.attended, 'numeric', '2-digit', '2-digit', false, true)}
+                    {formatDateTime(order.attended, 'numeric', '2-digit', '2-digit',true, true)}
                   </span>
                 </div>
               }

@@ -32,12 +32,17 @@ const InfoCliente = ({ client, zones }: { client: Client; zones: Zone[] }) => {
   }, [client.zone, zones]);
 
   useEffect(() => {
-    var date = formatDateTime(client.lastSale, "numeric", "numeric", "numeric");
-    if (date === "Invalid Date") {
-      date = "Sin ventas";
+    let formattedDate = formatDateTime(client.lastSale, "numeric", "numeric", "numeric");
+    if (formattedDate === "Invalid Date") {
+      formattedDate = "Sin ventas";
+    } else {
+      const time = new Date(client.lastSale).toLocaleTimeString("es-BO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      formattedDate += ` ${time}`;
     }
-
-    setDate(date);
+    setDate(formattedDate);
   }, [client.lastSale, client.zone]);
 
   const Opciones = () => {
@@ -203,7 +208,12 @@ const InfoCliente = ({ client, zones }: { client: Client; zones: Zone[] }) => {
             <div className="infoClientes-ventas">
               <span>Última venta</span>
               <div className="infoClientes-ultimaventa border-blue_custom text-blue_custom">
-                <span>{date}</span>
+                
+                 <span>
+                                   {client.lastSale
+                                     ? formatDateTime(client.lastSale, 'numeric', '2-digit', '2-digit', true, true)
+                                     : "Sin venta"}
+                                 </span>
               </div>
             </div>
             <div className="infoClientes-ventas relative z-10">

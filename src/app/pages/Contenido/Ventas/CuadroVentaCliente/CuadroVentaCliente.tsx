@@ -5,10 +5,11 @@ import { VentasContext } from "../VentasContext";
 import { Sale } from "../../../../../type/Sale/Sale";
 import { Client } from "../../../../../type/Cliente/Client";
 import Product from "../../../../../type/Products/Products";
-import { formatDateTime } from "../../../../../utils/helpers";
+
 import { toast } from "react-hot-toast";
 import { SalesApiConector } from "../../../../../api/classes";
 import { useNavigate } from "react-router-dom";
+import { formatDateTime } from "../../../../../utils/helpers";
 
 interface Props {
   sale: Sale;
@@ -27,7 +28,7 @@ const CuadroVentaCliente = ({ products, sale, isCobro }: Props) => {
 
   useEffect(() => {
     if (sale) {
-      var date = formatDateTime(sale.created, "numeric", "2-digit", "2-digit");
+      var date = formatDateTime(sale.created, "numeric", "2-digit", "2-digit", true, true); // Use 'keepLocal' as true
       setClient(sale.client);
       setDate(date);
     }

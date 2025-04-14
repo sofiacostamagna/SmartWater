@@ -7,7 +7,6 @@ import { IInvExpensesBody } from "../../../../../../api/types/invoice-expenses";
 import { AuthService } from "../../../../../../api/services/AuthService";
 import { UserData } from "../../../../../../type/UserData";
 import { InvoiceExpensesApiConector } from "../../../../../../api/classes";
-import moment from "moment";
 import toast from "react-hot-toast";
 import { Providers } from "../../../../../../type/providers";
 import { formatDateTime } from "../../../../../../utils/helpers";
@@ -36,10 +35,10 @@ const CuadroCuentasPorPagar = ({ expense }: Props) => {
     });
 
     const onSubmit: SubmitHandler<IInvExpensesBody['data']> = async (data) => {
-        console.log("Submitting", data)
+        console.log("Submitting", data);
 
         const userData: UserData | null = AuthService.getUser();
-        const provider = expense.provider
+        const provider = expense.provider;
 
         const response = await InvoiceExpensesApiConector.create({
             data: {
@@ -50,7 +49,7 @@ const CuadroCuentasPorPagar = ({ expense }: Props) => {
                 cashPayment: data.cashPayment,
                 paymentMethodCurrentAccount: data.paymentMethodCurrentAccount,
                 expense: expense._id,
-                date: moment().format("YYYY-MM-DD")
+                date: formatDateTime(new Date().toISOString(), 'numeric', '2-digit', '2-digit', true, true)
             }
         });
 

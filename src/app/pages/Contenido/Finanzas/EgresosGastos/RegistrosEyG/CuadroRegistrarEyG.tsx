@@ -130,7 +130,7 @@ const CuadroRegistrarEyG = ({
             </div>
 
             <div className="border border-blue_custom rounded-md text-blue_custom px-3 py-1">
-              {formatDateTime(expense.created, 'numeric', '2-digit', '2-digit')}
+              {formatDateTime(expense.created, 'numeric', '2-digit', '2-digit', true, true)}
             </div>
           </div>
 

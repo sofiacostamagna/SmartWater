@@ -403,7 +403,7 @@ const InfoClient = ({ client }: { client: Client }) => {
                     </p>
                     <p>
                       <b>Fecha de creación:</b>{" "}
-                      {formatDateTime(devolution.created, 'numeric', '2-digit', '2-digit', false, true)}
+                      {formatDateTime(devolution.created, 'numeric', '2-digit', '2-digit', true, true)}
                     </p>
                     <p>
                       <b>Comentario:</b> {devolution.comment && devolution.comment !== "" ? devolution.comment : "Sin comentario"}

@@ -101,6 +101,7 @@ const CuadroProveedor = ({ provider }: { provider: Providers }) => {
               <span className="font-semibold text-base">
                 {provider.fullName}
               </span>
+            
               <a
                 href={`https://wa.me/${provider.phoneNumber || ""}`}
                 className="btn-whatsapp flex items-center gap-2"
@@ -130,6 +131,21 @@ const CuadroProveedor = ({ provider }: { provider: Providers }) => {
         </div>
         <div className="w-[calc(100%_-_30px)] flex flex-col gap-1 text-[12px]">
           <div className="flex gap-2">
+ 
+            <span className="text-blue_custom">
+              {new Date(provider.created).toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })},{" "}
+              {new Date(provider.created).toLocaleTimeString("es-ES", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })}
+            </span>
+          </div>
+          <div className="flex gap-2">
             <span className="">Correo:</span>
             <span className="text-blue_custom"><a href={`mailto:${provider.email}`}>{provider.email}</a></span>
           </div>
@@ -141,7 +157,6 @@ const CuadroProveedor = ({ provider }: { provider: Providers }) => {
             <span className="">NIT:</span>
             <span className="text-blue_custom">{provider.NIT}</span>
           </div>
-
           <div className="flex items-center justify-end w-full">
             <div className="infoClientes-ventas relative z-10">
               <span className="text-blue_custom">

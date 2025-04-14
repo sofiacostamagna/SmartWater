@@ -113,13 +113,13 @@ const FiltroEgresosGastos = ({
 
     const handleSelectProvider = (id: string) => {
         setSelectedProvider(id);
-        setValue("provider", id); // No validation required
+        setValue("provider", id, { shouldValidate: true }); // Ensure validation
         setShowProviderDropdown(false);
     };
 
     const handleSelectAccount = (id: string) => {
         setSelectedAccount(id);
-        setValue("accountEntry", id); // No validation required
+        setValue("accountEntry", id, { shouldValidate: true }); // Ensure validation
         setShowAccountDropdown(false);
     };
 
@@ -150,15 +150,19 @@ const FiltroEgresosGastos = ({
             }
 
             if (initialFilters.provider) {
-                setValue('provider', initialFilters.provider, { shouldValidate: true })
+                setValue('provider', initialFilters.provider, { shouldValidate: true });
+                setSelectedProvider(initialFilters.provider); // Sync state with form value
             } else {
-                setValue('provider', "", { shouldValidate: true })
+                setValue('provider', "", { shouldValidate: true });
+                setSelectedProvider(null); // Reset state
             }
 
             if (initialFilters.accountEntry) {
-                setValue('accountEntry', initialFilters.accountEntry, { shouldValidate: true })
+                setValue('accountEntry', initialFilters.accountEntry, { shouldValidate: true });
+                setSelectedAccount(initialFilters.accountEntry); // Sync state with form value
             } else {
-                setValue('accountEntry', "", { shouldValidate: true })
+                setValue('accountEntry', "", { shouldValidate: true });
+                setSelectedAccount(null); // Reset state
             }
 
             if (initialFilters.initialDate) {
@@ -183,6 +187,14 @@ const FiltroEgresosGastos = ({
     const onSubmit = (data: IExpenseFilter) => {
         const filters = filterClients(data);
         onChange(filters);
+        setShowFiltro(false);
+    };
+
+    const clearFilters = () => {
+        setSelectedProvider(null);
+        setSelectedAccount(null);
+    
+        onChange({});
         setShowFiltro(false);
     };
 
@@ -546,10 +558,7 @@ const FiltroEgresosGastos = ({
                 <div className="flex justify-between w-full items-center gap-3 px-4">
                     <button
                         type="button"
-                        onClick={() => {
-                            setShowFiltro(false);
-                            onChange({});
-                        }}
+                        onClick={clearFilters}
                         className="mt-4 border-blue-500 border-2 rounded-full px-4 py-2.5 shadow-xl text-blue-500 font-bold w-full"
                     >
                         Quitar Filtros

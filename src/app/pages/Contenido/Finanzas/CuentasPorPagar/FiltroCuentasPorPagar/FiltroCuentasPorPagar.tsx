@@ -58,7 +58,11 @@ const FiltroCuentasPorPagar = ({
                 setSelectedDists(distribuidores.filter(d => initialFilters.user!.includes(d._id)))
             }
             if (initialFilters.provider) {
-                setValue(`provider`, initialFilters.provider, { shouldValidate: true })
+                setValue('provider', initialFilters.provider, { shouldValidate: true });
+                setSelectedProvider(initialFilters.provider); // Sync state with form value
+            } else {
+                setValue('provider', "", { shouldValidate: true });
+                setSelectedProvider(null); // Reset state
             }
         }
     }, [initialFilters, setValue, distribuidores])
@@ -104,7 +108,7 @@ const FiltroCuentasPorPagar = ({
 
     const handleSelectProvider = (id: string) => {
         setSelectedProvider(id);
-        setValue("provider", id, { shouldValidate: true });
+        setValue("provider", id, { shouldValidate: true }); // Sync state with form value
         setShowDropdown(false);
     };
 

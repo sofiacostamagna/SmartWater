@@ -33,23 +33,30 @@ const FiltroProveedores = ({
     const { register, handleSubmit, setValue, watch } = useForm<IProviderFilter>({
         defaultValues: initialState || {},
     });
-
-    useEffect(() => {
-        if (initialFilters) {
-            if (initialFilters.initialDate) {
-                setValue('fromDate', initialFilters.initialDate, { shouldValidate: true })
+   
+    
+       
+    
+        useEffect(() => {
+            if (initialFilters) {
+                if (initialFilters.initialDate) {
+                    setValue('fromDate', initialFilters.initialDate)
+                }
+                if (initialFilters.finalDate) {
+                    setValue('toDate', initialFilters.finalDate)
+                }
+                if (initialFilters.provider) {
+                    setValue('provider', initialFilters.provider)
+                    setSelectedProvider(initialFilters.provider) 
+                }
+                if (initialFilters.NIT) {
+                    setValue('nit', initialFilters.NIT)
+                    setSelectedNit(initialFilters.NIT) 
+                }
             }
-            if (initialFilters.finalDate) {
-                setValue('toDate', initialFilters.finalDate, { shouldValidate: true })
-            }
-            if (initialFilters.provider) {
-                setValue('provider', initialFilters.provider, { shouldValidate: true })
-            }
-            if (initialFilters.NIT) {
-                setValue('nit', initialFilters.NIT, { shouldValidate: true })
-            }
-        }
-    }, [initialFilters, setValue])
+        }, [initialFilters, setValue])
+    
+     
 
     const { setShowFiltro } = useContext(ProveedoresContext);
 
@@ -61,6 +68,9 @@ const FiltroProveedores = ({
     const [selectedNit, setSelectedNit] = useState<string | null>(null);
     const providerDropdownRef = useRef<HTMLDivElement>(null);
     const nitDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
+    const [nitDropdownStyle, setNitDropdownStyle] = useState<React.CSSProperties>({});
 
     const NITS = useMemo(() => {
         const nits = providers.map(p => p.NIT);
@@ -107,30 +117,46 @@ const FiltroProveedores = ({
         setShowNitDropdown(false);
     };
 
-    const handleDropdownPosition = (ref: React.RefObject<HTMLDivElement>, setDropdownStyle: React.Dispatch<React.SetStateAction<React.CSSProperties>>) => {
+   // Dentro del componente FiltroProveedores
+const handleDropdownPosition = (ref: React.RefObject<HTMLDivElement>, setDropdownStyle: React.Dispatch<React.SetStateAction<React.CSSProperties>>) => {
+    requestAnimationFrame(() => {
         if (ref.current) {
             const rect = ref.current.getBoundingClientRect();
             setDropdownStyle({
                 position: "fixed",
-                top: rect.bottom, 
-                left: rect.left,
+                top: rect.bottom + window.scrollY + 5, // Añadir scrollY y margen
+                left: rect.left + window.scrollX,
                 width: `${rect.width}px`,
                 zIndex: 9999,
+                opacity: 1 // Asegurar visibilidad inicial
             });
         }
-    };
+    });
+};
 
-    const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
-    const [nitDropdownStyle, setNitDropdownStyle] = useState<React.CSSProperties>({});
-
-    useEffect(() => {
-        if (showProviderDropdown) {
-            handleDropdownPosition(providerDropdownRef, setProviderDropdownStyle);
-        }
-        if (showNitDropdown) {
-            handleDropdownPosition(nitDropdownRef, setNitDropdownStyle);
-        }
-    }, [showProviderDropdown, showNitDropdown]);
+// Modificar el useEffect de los dropdowns
+useEffect(() => {
+    if (showProviderDropdown || showNitDropdown) {
+        // Establecer posición inicial primero
+        const initialStyle: React.CSSProperties = {
+            position: "fixed", // Cambiar a un valor compatible con CSSProperties
+            top: 0,
+            left: 0,
+            width: "auto",
+            zIndex: 9999,
+            opacity: 0 // Inicialmente transparente
+        };
+        
+        if (showProviderDropdown) setProviderDropdownStyle(initialStyle);
+        if (showNitDropdown) setNitDropdownStyle(initialStyle);
+        
+        // Calcular posición real después
+        setTimeout(() => {
+            if (showProviderDropdown) handleDropdownPosition(providerDropdownRef, setProviderDropdownStyle);
+            if (showNitDropdown) handleDropdownPosition(nitDropdownRef, setNitDropdownStyle);
+        }, 10);
+    }
+}, [showProviderDropdown, showNitDropdown]);
 
     const onSubmit = (data: IProviderFilter) => {
         const filters = filterClients(data);

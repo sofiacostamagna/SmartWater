@@ -113,13 +113,13 @@ const FiltroEgresosGastos = ({
 
     const handleSelectProvider = (id: string) => {
         setSelectedProvider(id);
-        setValue("provider", id, { shouldValidate: true });
+        setValue("provider", id); // No validation required
         setShowProviderDropdown(false);
     };
 
     const handleSelectAccount = (id: string) => {
         setSelectedAccount(id);
-        setValue("accountEntry", id, { shouldValidate: true });
+        setValue("accountEntry", id); // No validation required
         setShowAccountDropdown(false);
     };
 
@@ -262,13 +262,9 @@ const FiltroEgresosGastos = ({
                         <div className="relative" ref={providerDropdownRef}>
                             <div
                                 className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                    errors.provider && providerTouched
-                                        ? showProviderDropdown
-                                            ? "outline-4 outline-red-500"
-                                            : "outline-2 outline-red-500"
-                                        : showProviderDropdown
-                                            ? "outline-4 outline-black"
-                                            : "outline-2 outline-black"
+                                    showProviderDropdown
+                                        ? "outline-4 outline-black"
+                                        : "outline-2 outline-black"
                                 } flex justify-between items-center`}
                                 onClick={() => setShowProviderDropdown(!showProviderDropdown)}
                                 onBlur={handleProviderBlur}
@@ -312,21 +308,8 @@ const FiltroEgresosGastos = ({
                         </div>
                         <input
                             type="hidden"
-                            {...register("provider", {
-                                required: "Debes seleccionar un proveedor",
-                                validate: (value) => {
-                                    return value && value.trim() !== ""
-                                        ? true
-                                        : "Debes seleccionar un proveedor válido";
-                                },
-                            })}
+                            {...register("provider")} // No validation rules
                         />
-                        {errors.provider && providerTouched && (
-                            <span className="text-red-500 font-normal text-sm font-pricedown">
-                                <i className="fa-solid fa-triangle-exclamation"></i>{" "}
-                                {errors.provider.message}
-                            </span>
-                        )}
                     </motion.div>
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -339,13 +322,9 @@ const FiltroEgresosGastos = ({
                         <div className="relative" ref={accountDropdownRef}>
                             <div
                                 className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
-                                    errors.accountEntry && accountTouched
-                                        ? showAccountDropdown
-                                            ? "outline-4 outline-red-500"
-                                            : "outline-2 outline-red-500"
-                                        : showAccountDropdown
-                                            ? "outline-4 outline-black"
-                                            : "outline-2 outline-black"
+                                    showAccountDropdown
+                                        ? "outline-4 outline-black"
+                                        : "outline-2 outline-black"
                                 } flex justify-between items-center`}
                                 onClick={() => setShowAccountDropdown(!showAccountDropdown)}
                                 onBlur={handleAccountBlur}
@@ -389,21 +368,8 @@ const FiltroEgresosGastos = ({
                         </div>
                         <input
                             type="hidden"
-                            {...register("accountEntry", {
-                                required: "Debes seleccionar una cuenta contable",
-                                validate: (value) => {
-                                    return value && value.trim() !== ""
-                                        ? true
-                                        : "Debes seleccionar una cuenta contable válida";
-                                },
-                            })}
+                            {...register("accountEntry")} // No validation rules
                         />
-                        {errors.accountEntry && accountTouched && (
-                            <span className="text-red-500 font-normal text-sm font-pricedown">
-                                <i className="fa-solid fa-triangle-exclamation"></i>{" "}
-                                {errors.accountEntry.message}
-                            </span>
-                        )}
                     </motion.div>
                 </div>
 

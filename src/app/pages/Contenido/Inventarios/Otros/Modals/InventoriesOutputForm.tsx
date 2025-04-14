@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { OutputItemBody, MatchedElement } from "../../../../../../type/Kardex";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -12,49 +12,75 @@ interface Props {
 }
 
 const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, inventories }: Props) => {
-    const [isOpen, setIsOpen] = useState<boolean>(true)
-    const [edit, setEdit] = useState<number>(-1)
+    const [isOpen, setIsOpen] = useState<boolean>(true);
+    const [edit, setEdit] = useState<number>(-1);
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [showDropdown, setShowDropdown] = useState<boolean>(false);
+    const [selectedElement, setSelectedElement] = useState<string>("");
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const { register, setValue, formState: { errors, isValid }, getValues, reset } = useForm<OutputItemBody & { element: string }>({
+    const { register, setValue, formState: { errors, isValid }, getValues, reset, trigger } = useForm<OutputItemBody & { element: string }>({
         mode: 'all'
-    })
+    });
+
+    const filteredElements = searchTerm.trim() === ""
+        ? elements
+        : elements.filter((row) =>
+            row.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    const handleSelectElement = (id: string) => {
+        setSelectedElement(id);
+        setValue("element", id, { shouldValidate: true, shouldTouch: true });
+        setSearchTerm("");
+        setShowDropdown(false);
+        trigger("element");
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowDropdown(false);
+                trigger("element");
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef, trigger]);
 
     const setEditElement = (index: number) => {
-        setEdit(index)
-
-        const inv = inventories[index]
+        setEdit(index);
+        const inv = inventories[index];
         if (inv.item) {
-            setValue('element', inv.item, { shouldValidate: true })
+            setValue('element', inv.item, { shouldValidate: true });
         }
         if (inv.product) {
-            setValue('element', inv.product, { shouldValidate: true })
+            setValue('element', inv.product, { shouldValidate: true });
         }
-
-        // setValue('unitPrice', inv.unitPrice, { shouldValidate: true })
-        setValue('quantity', inv.quantity, { shouldValidate: true })
-    }
+        setValue('quantity', inv.quantity, { shouldValidate: true });
+    };
 
     const onSubmit = () => {
         const res: OutputItemBody = {
-            // unitPrice: parseFloat(String(getValues('unitPrice'))),
             quantity: parseFloat(String(getValues('quantity'))),
             outputType: getValues('outputType')
-        }
+        };
 
-        const elem = getValues('element')
-        const el = elements.find(e => e._id === elem)
+        const el = elements.find((e) => e._id === selectedElement);
 
         if (el?.isProduct) {
-            res.product = elem
+            res.product = selectedElement;
         } else {
-            res.item = elem
+            res.item = selectedElement;
         }
 
-        updateDetails(res, edit)
-        if (edit !== -1) { setEdit(-1) }
-        // reset({ element: "", unitPrice: 0, quantity: 0, inputType: "production_received" })
-        reset({ element: "", quantity: 0, outputType: "production_delivered" })
-    }
+        updateDetails(res, edit);
+        if (edit !== -1) { setEdit(-1); }
+        reset({ element: "", quantity: 0, outputType: "production_delivered" });
+    };
 
     return (
         <div className="w-full rounded-[15px] shadow dark:shadow-gray-300 p-4">
@@ -63,8 +89,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                 <i className={`fa-solid fa-angle-down transition-all ${isOpen && "rotate-180"}`}></i>
             </div>
 
-            {
-                isOpen &&
+            {isOpen && (
                 <div className="flex flex-col gap-4 text-sm">
                     <div className="flex flex-col gap-4 text-sm">
                         <div className="flex gap-4 justify-between text-sm">
@@ -80,7 +105,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                     {...register("outputType", {
                                         required: "Debes seleccionar un tipo"
                                     })}
-                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black dark:disabled:bg-zinc-700 disabled:bg-zinc-300"
+                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
                                 >
                                     <option value="production_delivered">Salida a producción</option>
                                     <option value="adjustment_exit">Salida por ajuste</option>
@@ -92,6 +117,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                     </span>
                                 )}
                             </motion.div>
+
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -100,21 +126,75 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                 className="w-full md:w-1/3 flex flex-col gap-2"
                             >
                                 <label>Item o producto</label>
-                                <select
+                                <div className="relative" ref={dropdownRef}>
+                                    <div className="relative w-full">
+                                        <motion.div
+                                            key={selectedElement}
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline ${
+                                                errors.element
+                                                    ? showDropdown
+                                                        ? "outline-4 outline-red-500"
+                                                        : "outline-2 outline-red-500"
+                                                    : showDropdown
+                                                    ? "outline-4 outline-black"
+                                                    : "outline-2 outline-black"
+                                            } flex justify-between items-center`}
+                                            onClick={() => setShowDropdown(!showDropdown)}
+                                        >
+                                            <span>
+                                                {selectedElement
+                                                    ? elements.find((e) => e._id === selectedElement)?.name || "Seleccione uno"
+                                                    : "Seleccione uno"}
+                                            </span>
+                                            <i className={`fa-solid fa-angle-down transition-transform ${showDropdown ? "rotate-180" : ""}`}></i>
+                                        </motion.div>
+                                        {showDropdown && (
+                                            <div
+                                                ref={dropdownRef}
+                                                className="absolute top-full translate-y-3 left-1/2 -translate-x-[45%] w-[250px] border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+                                            >
+                                                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+                                                        placeholder="Buscar..."
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                    />
+                                                </div>
+                                                {filteredElements.length > 0 ? (
+                                                    filteredElements.map((row) => (
+                                                        <div
+                                                            key={row._id}
+                                                            className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+                                                            onClick={() => handleSelectElement(row._id)}
+                                                        >
+                                                            {row.name}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                                        Sin opciones
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <input
+                                    type="hidden"
                                     {...register("element", {
-                                        required: "Debes seleccionar un elemento"
+                                        required: "Debes seleccionar un elemento",
+                                        validate: (value) => {
+                                            return value && value.trim() !== ""
+                                                ? true
+                                                : "Debes seleccionar un elemento válido";
+                                        },
                                     })}
-                                    className="p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black"
-                                >
-                                    <option value={""}>Seleccione uno</option>
-                                    {
-                                        elements.map((row, index) => (
-                                            <option value={row._id} key={index}>
-                                                {row.name}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
+                                />
                                 {errors.element && (
                                     <span className="text-red-500 font-normal text-sm font-pricedown">
                                         <i className="fa-solid fa-triangle-exclamation"></i>{" "}
@@ -122,6 +202,7 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                     </span>
                                 )}
                             </motion.div>
+
                             <Input
                                 label="Cantidad"
                                 name="quantity"
@@ -131,39 +212,25 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                                 className="no-spinner"
                                 errors={errors.quantity}
                                 required
-                                containerClassName='flex-1'
+                                containerClassName="flex-1"
                                 validateAmount={(value) => {
-                                    const val = parseFloat(value)
-                                    return val > 0 ? Number.isInteger(val) ? true : "La cantidad debe ser un número entero" : "La cantidad debe ser mayor que 0"
+                                    const val = parseFloat(value);
+                                    return val > 0
+                                        ? Number.isInteger(val)
+                                            ? true
+                                            : "La cantidad debe ser un número entero"
+                                        : "La cantidad debe ser mayor que 0";
                                 }}
                             />
                         </div>
-                        {/* <div className="flex gap-4 justify-between text-sm flex-wrap"> */}
 
-                        {/* <Input
-                                label="Costo unitario"
-                                name="unitPrice"
-                                register={register}
-                                type="number"
-                                min={0}
-                                step={0.01}
-                                className="no-spinner"
-                                sufix={<span>Bs</span>}
-                                errors={errors.unitPrice}
-                                required
-                                containerClassName='flex-1'
-                                validateAmount={(val: number) => val > 0 ? true : "El costo debe ser mayor que 0"}
-                            /> */}
-                        {/* </div> */}
                         <button
                             type="button"
-                            onClick={() => onSubmit()}
+                            onClick={onSubmit}
                             disabled={!isValid}
-                            className="disabled:bg-gray-400 bg-blue-500 py-2  text-sm px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600"
+                            className="disabled:bg-gray-400 bg-blue-500 py-2 text-sm px-6 rounded-full text-white font-medium shadow-xl hover:bg-blue-600"
                         >
-                            {
-                                edit !== -1 ? "Editar" : "Agregar"
-                            }
+                            {edit !== -1 ? "Editar" : "Agregar"}
                         </button>
                     </div>
 
@@ -213,9 +280,9 @@ const InventoriesOutputForm = ({ elements, updateDetails, handleDeleteElement, i
                         </>
                     }
                 </div>
-            }
-        </div >
-    )
-}
+            )}
+        </div>
+    );
+};
 
-export default InventoriesOutputForm
+export default InventoriesOutputForm;

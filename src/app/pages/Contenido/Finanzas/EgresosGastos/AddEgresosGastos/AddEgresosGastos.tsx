@@ -66,7 +66,6 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
       setSelectedProvider(id);
       setValue("provider", id, { shouldValidate: true, shouldTouch: true }); 
       setShowDropdown(false);
-      trigger("provider"); 
     };
     
   
@@ -84,7 +83,7 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
       setSelectedAccount(id);
       setValue("accountEntry", id, { shouldValidate: true, shouldTouch: true });
       setShowDropdownAccount(false);
-      trigger("accountEntry");
+  
     };
 
   const onSubmit: SubmitHandler<IExpenseDetailsBody['data']> = async (data) => {
@@ -225,53 +224,55 @@ const AddEgresosGastos = ({ accounts, provider, onCancel, elements }: Props) => 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        if (
-            providerDropdownRef.current &&
-            !providerDropdownRef.current.contains(event.target as Node)
-        ) {
-            setShowDropdown(false);
-            trigger("provider"); // Trigger validation for provider
+      if (
+        providerDropdownRef.current &&
+        !providerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+        if (isProviderTouched && !selectedProvider) {
+          trigger("provider"); // Validar solo si el dropdown fue tocado
         }
-        if (
-            accountDropdownRef.current &&
-            !accountDropdownRef.current.contains(event.target as Node)
-        ) {
-            setShowDropdownAccount(false);
-            trigger("accountEntry"); // Trigger validation for accountEntry
+      }
+      if (
+        accountDropdownRef.current &&
+        !accountDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdownAccount(false);
+        if (isAccountTouched && !selectedAccount) {
+          trigger("accountEntry"); // Validar solo si el dropdown fue tocado
         }
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-}, [trigger]);
-
-
+  }, [isProviderTouched, isAccountTouched, selectedProvider, selectedAccount, trigger]);
 
   const handleBlurProvider = () => {
     if (isProviderTouched && !selectedProvider) {
-        setValue("provider", "", { shouldValidate: true }); // Validar si no se selecciona nada
-        trigger("provider"); // Forzar validación
+      setValue("provider", "", { shouldValidate: true }); // Validar si no se selecciona nada
+      trigger("provider");
     }
     setShowDropdown(false); // Cerrar el dropdown
-};
+  };
 
-const handleBlurAccount = () => {
+  const handleBlurAccount = () => {
     if (isAccountTouched && !selectedAccount) {
-        setValue("accountEntry", "", { shouldValidate: true }); // Validar si no se selecciona nada
-        trigger("accountEntry"); // Forzar validación
+      setValue("accountEntry", "", { shouldValidate: true }); // Validar si no se selecciona nada
+      trigger("accountEntry");
     }
     setShowDropdownAccount(false); // Cerrar el dropdown
-};
+  };
 
-const handleProviderClick = () => {
+  const handleProviderClick = () => {
     setShowDropdown(!showDropdown);
     setIsProviderTouched(true); // Marcar el dropdown como tocado
-};
+  };
 
-const handleAccountClick = () => {
+  const handleAccountClick = () => {
     setShowDropdownAccount(!showDropdownAccount);
     setIsAccountTouched(true); // Marcar el dropdown como tocado
-};
+  };
 
   return (
     <form

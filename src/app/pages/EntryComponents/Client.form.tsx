@@ -551,6 +551,34 @@ const ClientForm = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ delay: 0.3 }}
+          className="w-full flex gap-3 text-md items-center col-span-2 max-sm:col-span-1"
+        >
+          <input
+            type="checkbox"
+            {...register("isClient", {
+              onChange: (e) => handleCheckboxChange("isClient"),
+            })}
+            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
+            id="isClient"
+          />
+          <label htmlFor="isClient" className="mr-4">
+            Cliente Habitual
+          </label>
+          <input
+            type="checkbox"
+            {...register("isAgency", {
+              onChange: (e) => handleCheckboxChange("isAgency"),
+            })}
+            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
+            id="isAgency"
+          />
+          <label htmlFor="isAgency">Agencia</label>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ delay: 0.3 }}
           className="w-full col-span-2 max-sm:col-span-1 relative"
         >
         

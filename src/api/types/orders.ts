@@ -16,6 +16,8 @@ export interface IOrdersGetParams extends Search {
         finalDate?: string;
         year?: number;
         month?: number;
+        attendedDateInit?: string; // Added
+        attendedDateEnd?: string;  // Added
     }
 }
 

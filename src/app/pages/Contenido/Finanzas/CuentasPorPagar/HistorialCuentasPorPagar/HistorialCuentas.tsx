@@ -234,7 +234,6 @@ const HistorialCuentas = ({ provider }: Props) => {
                 <FiltroCuentasPorPagar
                     isPayment
                     providers={providers}
-                    zones={zones}
                     distribuidores={distribuidores}
                     onChange={handleFilterChange}
                     initialFilters={savedFilters}

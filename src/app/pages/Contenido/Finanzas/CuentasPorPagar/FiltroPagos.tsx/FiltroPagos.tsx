@@ -13,7 +13,6 @@ interface IExpenseFilters {
     fromDate: string | null;
     toDate: string | null;
     provider: string | null;
-    zones: Record<string, string>;
     distributor: Record<string, string>;
 
     cash: boolean;
@@ -32,7 +31,6 @@ const initialState: IExpenseFilters = {
 
     fromDate: null,
     toDate: null,
-    zones: {},
     distributor: {},
     provider: null
 }
@@ -51,7 +49,7 @@ const FiltroPagos = ({
     initialFilters: IInvExpensesGetParams['filters'];
     isHistory?: boolean;
 }) => {
-    const { register, handleSubmit, setValue, watch, trigger, formState: { errors } } = useForm<IExpenseFilters>({
+    const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<IExpenseFilters>({
         defaultValues: initialState || {},
     });
 
@@ -72,7 +70,7 @@ const FiltroPagos = ({
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setShowDropdown(false);
-                trigger("provider"); // Trigger validation on close
+               
             }
         };
 
@@ -80,7 +78,7 @@ const FiltroPagos = ({
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [dropdownRef, trigger]);
+    }, [dropdownRef]);
 
     const handleSelectProvider = (id: string) => {
         setSelectedProvider(id);
@@ -90,7 +88,6 @@ const FiltroPagos = ({
 
     const handleProviderBlur = () => {
         setProviderTouched(true);
-        trigger("provider"); // Trigger validation only after interaction
     };
 
     useEffect(() => {
@@ -124,11 +121,6 @@ const FiltroPagos = ({
                 setValue('cash', is === 'cash', { shouldValidate: true })
             }
 
-            if (initialFilters.zone) {
-                initialFilters.zone.split(",").forEach((z) => {
-                    setValue(`zones.${z}`, z, { shouldValidate: true })
-                })
-            }
             if (initialFilters.user) {
                 setSelectedDists(distribuidores.filter(d => initialFilters.user!.includes(d._id)))
             }
@@ -152,11 +144,6 @@ const FiltroPagos = ({
         if (filters.fromDate) { result.initialDate = filters.fromDate.toString() }
         if (filters.toDate) { result.finalDate = filters.toDate.toString() }
         if (filters.provider) { result.provider = filters.provider }
-
-        if (filters.zones) {
-            const zones = Object.values(filters.zones).filter(z => !!z).join(',')
-            if (zones !== "") { result.zone = zones }
-        }
 
         if (!((!!filters.withBalance && !!filters.withoutBalance) || (!filters.withBalance && !filters.withoutBalance))) {
             result.hasBalance = filters.withBalance
@@ -256,7 +243,7 @@ const FiltroPagos = ({
                                             <div
                                                 key={provider._id}
                                                 className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
-                                                onClick={() => handleSelectProvider(provider._id)}
+                                                onClick={() => handleSelectProvider(provider._id)} // Moved onClick here
                                             >
                                                 {provider.fullName || "Sin nombre"}
                                             </div>
@@ -271,14 +258,7 @@ const FiltroPagos = ({
                         </div>
                         <input
                             type="hidden"
-                            {...register("provider", {
-                                required: "Debes seleccionar un proveedor",
-                                validate: (value) => {
-                                    return value && value.trim() !== ""
-                                        ? true
-                                        : "Debes seleccionar un proveedor válido";
-                                },
-                            })}
+                            {...register("provider")}
                         />
                         {errors.provider && providerTouched && (
                             <span className="text-red-500 font-normal text-sm font-pricedown">
@@ -345,9 +325,9 @@ const FiltroPagos = ({
                                     id="check5"
                                     checked={watch('withBalance')}
                                     onChange={() => {
-                                        const credit = watch("withBalance")
+                                        const credit = watch("withBalance");
                                         setValue("withBalance", !credit);
-                                        setValue("withoutBalance", false);
+                                        setValue("withoutBalance", false); // Ensure mutual exclusivity
                                     }}
                                 />
                                 <img src="/Moneda-icon-blue.svg" alt="" />
@@ -362,9 +342,9 @@ const FiltroPagos = ({
                                     id="check6"
                                     checked={watch('withoutBalance')}
                                     onChange={() => {
-                                        const credit = watch("withoutBalance")
+                                        const credit = watch("withoutBalance");
                                         setValue("withoutBalance", !credit);
-                                        setValue("withBalance", false);
+                                        setValue("withBalance", false); // Ensure mutual exclusivity
                                     }}
                                 />
                                 <img src="/nosaldo.svg" alt="" />
@@ -392,8 +372,6 @@ const FiltroPagos = ({
                                             } else {
                                                 setSelectedDists(prev => [...prev, dists])
                                             }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
                                         }}
                                         checked={selectedDists.some(sd => sd._id === dists._id)}
                                         id={`distrib-${dists._id}`}
@@ -423,8 +401,6 @@ const FiltroPagos = ({
                                             } else {
                                                 setSelectedDists(prev => [...prev, dists])
                                             }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
                                         }}
                                         checked={selectedDists.some(sd => sd._id === dists._id)}
                                         id={`distrib-${dists._id}`}

@@ -1,7 +1,6 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import "./FiltroCuentasPorPagar.css";
 import { CuentasPorPagarContext } from "../CuentasPorPagarContext";
-import { Zone } from "../../../../../../type/City";
 import { User } from "../../../../../../type/User";
 import { IExpensesGetParams } from "../../../../../../api/types/expenses";
 import { useForm } from "react-hook-form";
@@ -11,27 +10,23 @@ import { Providers } from "../../../../../../type/providers";
 
 interface IExpenseFilters {
     toDate: string | null;
-    zones: Record<string, string>;
     distributor: Record<string, string>;
     provider: string | null;
 }
 
 const initialState: IExpenseFilters = {
     toDate: null,
-    zones: {},
     distributor: {},
     provider: null
 }
 const FiltroCuentasPorPagar = ({
     onChange,
     initialFilters,
-    zones,
     distribuidores,
     providers,
     isPayment
 }: {
     providers: Providers[];
-    zones: Zone[];
     distribuidores: User[];
     onChange: (filters: IExpensesGetParams['filters']) => void;
     initialFilters: IExpensesGetParams['filters'];
@@ -59,11 +54,6 @@ const FiltroCuentasPorPagar = ({
             if (initialFilters.finalDate) {
                 setValue('toDate', initialFilters.finalDate, { shouldValidate: true })
             }
-            if (initialFilters.zone) {
-                initialFilters.zone.split(",").forEach((z) => {
-                    setValue(`zones.${z}`, z, { shouldValidate: true })
-                })
-            }
             if (initialFilters.user) {
                 setSelectedDists(distribuidores.filter(d => initialFilters.user!.includes(d._id)))
             }
@@ -77,7 +67,7 @@ const FiltroCuentasPorPagar = ({
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setShowDropdown(false);
-                trigger("provider"); // Trigger validation on close
+      
             }
         };
 
@@ -85,7 +75,7 @@ const FiltroCuentasPorPagar = ({
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [dropdownRef, trigger]);
+    }, [dropdownRef]);
 
     const { setShowFiltro } = useContext(CuentasPorPagarContext);
 
@@ -96,22 +86,20 @@ const FiltroCuentasPorPagar = ({
     };
 
     const filterClients = (filters: IExpenseFilters): IExpensesGetParams['filters'] => {
-        const result: IExpensesGetParams['filters'] = {}
+        const result: IExpensesGetParams['filters'] = {};
 
-        if (filters.provider) { result.provider = filters.provider }
-        if (filters.toDate) { result.finalDate = filters.toDate.toString() }
-
-        if (filters.zones) {
-            const zones = Object.values(filters.zones).filter(z => !!z).join(',')
-            if (zones !== "") { result.zone = zones }
+        if (filters.provider?.trim()) {
+            result.provider = filters.provider;
         }
-
+        if (filters.toDate) {
+            result.finalDate = filters.toDate.toString();
+        }
         if (selectedDists.length > 0) {
-            const dists = selectedDists.map(z => z._id).join(',')
-            if (dists !== "") { result.user = dists }
+            const dists = selectedDists.map((z) => z._id).join(',');
+            result.user = dists;
         }
 
-        return result
+        return result;
     };
 
     const handleSelectProvider = (id: string) => {
@@ -122,7 +110,6 @@ const FiltroCuentasPorPagar = ({
 
     const handleProviderBlur = () => {
         setProviderTouched(true);
-        trigger("provider"); // Trigger validation only after interaction
     };
 
     return (
@@ -211,14 +198,7 @@ const FiltroCuentasPorPagar = ({
                         </div>
                         <input
                             type="hidden"
-                            {...register("provider", {
-                                required: "Debes seleccionar un proveedor",
-                                validate: (value) => {
-                                    return value && value.trim() !== ""
-                                        ? true
-                                        : "Debes seleccionar un proveedor válido";
-                                },
-                            })}
+                            {...register("provider")} // Remove validation to allow optional filtering
                         />
                         {errors.provider && providerTouched && (
                             <span className="text-red-500 font-normal text-sm font-pricedown">
@@ -245,8 +225,6 @@ const FiltroCuentasPorPagar = ({
                                             } else {
                                                 setSelectedDists(prev => [...prev, dists])
                                             }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
                                         }}
                                         checked={selectedDists.some(sd => sd._id === dists._id)}
                                         id={`distrib-${dists._id}`}
@@ -276,8 +254,6 @@ const FiltroCuentasPorPagar = ({
                                             } else {
                                                 setSelectedDists(prev => [...prev, dists])
                                             }
-
-                                            zones.forEach(z => setValue(`zones.${z._id}`, "", { shouldValidate: true }))
                                         }}
                                         checked={selectedDists.some(sd => sd._id === dists._id)}
                                         id={`distrib-${dists._id}`}

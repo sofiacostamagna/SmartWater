@@ -139,7 +139,7 @@ useEffect(() => {
     if (showProviderDropdown || showNitDropdown) {
         // Establecer posición inicial primero
         const initialStyle: React.CSSProperties = {
-            position: "fixed", // Cambiar a un valor compatible con CSSProperties
+            position: "fixed", 
             top: 0,
             left: 0,
             width: "auto",
@@ -150,7 +150,7 @@ useEffect(() => {
         if (showProviderDropdown) setProviderDropdownStyle(initialStyle);
         if (showNitDropdown) setNitDropdownStyle(initialStyle);
         
-        // Calcular posición real después
+       
         setTimeout(() => {
             if (showProviderDropdown) handleDropdownPosition(providerDropdownRef, setProviderDropdownStyle);
             if (showNitDropdown) handleDropdownPosition(nitDropdownRef, setNitDropdownStyle);

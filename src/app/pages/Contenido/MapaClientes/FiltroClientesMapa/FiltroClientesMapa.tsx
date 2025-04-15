@@ -25,6 +25,8 @@ interface IClientFilters {
   toDate: string | null;
   distributor: Record<string, string>;
   status: Record<string, string>;
+  withLoanBalance: boolean;
+  withoutLoanBalance: boolean;
 }
 
 const initialState: IClientFilters = {
@@ -44,7 +46,9 @@ const initialState: IClientFilters = {
   fromDate: null,
   toDate: null,
   distributor: {},
-  status: {}
+  status: {},
+  withLoanBalance: false,
+  withoutLoanBalance: false,
 }
 
 const FiltroClientesMapa = ({
@@ -113,6 +117,10 @@ const FiltroClientesMapa = ({
       if (initialFilters.user) {
         setSelectedDists(distribuidores.filter(d => initialFilters.user!.includes(d._id)))
       }
+      if (initialFilters.hasOwnProperty('hasBalanceLoan')) {
+        setValue('withLoanBalance', !!initialFilters.hasBalanceLoan, { shouldValidate: true });
+        setValue('withoutLoanBalance', !initialFilters.hasBalanceLoan, { shouldValidate: true });
+      }
     }
   }, [initialFilters, setValue, distribuidores])
 
@@ -165,19 +173,26 @@ const FiltroClientesMapa = ({
     }
 
     // Filter by loans
-    if (!((!!filters.withLoans && !!filters.withoutLoans) || (!filters.withLoans && !filters.withoutLoans))) {
-      result.hasLoan = filters.withLoans;
+    if (filters.withLoans) {
+      result.hasLoan = true;
+      result.hasBalanceLoan = true; 
+    } else if (filters.withoutLoans) {
+      result.hasLoan = false;
+      result.hasBalanceLoan = false; 
+    } else {
+      delete result.hasLoan;
+      delete result.hasBalanceLoan; 
+    }
 
-      // Ensure only clients with loans > 0 are included
-      if (filters.withLoans) {
-        result.loansActive = true; // Custom property to indicate loans > 0
-      }
+    // Filter by loan balance
+    if (!filters.withLoans && !filters.withoutLoans) {
+      delete result.hasBalanceLoan; 
     }
 
     // Filter by orders (include both registered and unregistered clients)
     if (!((!!filters.withOrder && !!filters.withoutOrder) || (!filters.withOrder && !filters.withoutOrder))) {
       result.hasOrder = filters.withOrder;
-      delete result.isClient; // Remove restriction for orders
+      delete result.isClient; 
     }
 
     // Filter by selected distributors
@@ -186,7 +201,7 @@ const FiltroClientesMapa = ({
       if (dists !== "") { result.user = dists }
     }
 
-    console.log("Generated Filters:", result); // Debugging to check loansActive
+    console.log("Generated Filters:", result); 
 
     return result;
   };
@@ -445,6 +460,46 @@ const FiltroClientesMapa = ({
         </div>
       </div>
 
+      <div className="flex flex-col gap-3">
+        <p className="font-semibold text-blue_custom">Saldo en préstamos</p>
+        <div className="flex flex-wrap gap-6">
+          <div className="flex gap-3 items-center">
+            <input
+              className="input-check accent-blue_custom"
+              type="checkbox"
+              id="check21"
+              checked={watch('withLoanBalance')}
+              onChange={() => {
+                const hasBalance = watch("withLoanBalance");
+                setValue("withLoanBalance", !hasBalance);
+                setValue("withoutLoanBalance", false);
+              }}
+            />
+            <img src="/loan-balance-positive.svg" alt="" />
+            <label htmlFor="check21" className="text-sm">
+              Con saldo en préstamos
+            </label>
+          </div>
+          <div className="flex gap-3 items-center">
+            <input
+              className="input-check accent-blue_custom"
+              type="checkbox"
+              id="check22"
+              checked={watch('withoutLoanBalance')}
+              onChange={() => {
+                const noBalance = watch("withoutLoanBalance");
+                setValue("withoutLoanBalance", !noBalance);
+                setValue("withLoanBalance", false);
+              }}
+            />
+            <img src="/loan-balance-zero.svg" alt="" />
+            <label htmlFor="check22" className="text-sm">
+              Sin saldo en préstamos
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div className="w-full flex flex-col gap-2">
         <label className="font-semibold text-blue_custom">Clientes</label>
         <div className="flex flex-wrap gap-x-6 gap-y-4">
@@ -570,7 +625,7 @@ const FiltroClientesMapa = ({
           type="button"
           onClick={() => {
             setShowFiltro(false);
-            onChange({});
+            onChange({ hasBalanceLoan: false }); // Provide a default value for hasBalanceLoan
           }}
           className="mt-4 border-blue-500 border-2 rounded-full px-4 py-2.5 shadow-xl text-blue-500 font-bold w-full"
         >

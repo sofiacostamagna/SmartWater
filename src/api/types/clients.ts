@@ -16,8 +16,8 @@ export interface IClientGetParams extends Search {
         renewedIn?: number;
         hasCredit?: boolean;
         clientDeleted?: boolean;
-        isClient?: boolean; // Add this property to filter registered clients
-        loansActive?: boolean; // Add this property to filter clients with active loans
+        isClient?: boolean; 
+        hasBalanceLoan?: boolean; 
     }
 }
 

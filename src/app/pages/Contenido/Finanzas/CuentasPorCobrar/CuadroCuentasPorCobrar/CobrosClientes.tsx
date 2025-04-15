@@ -10,6 +10,13 @@ const CobrosClientes = ({
   client?: Client;
   bill: Bills;
 }) => {
+  // Determinar el método de pago
+  const paymentMethod = bill.cashPayment
+    ? "Efectivo"
+    : bill.paymentMethodCurrentAccount
+    ? "Cta. Cte"
+    : "Desconocido";
+
   return (
     <>
       <div className="CuadroCuentasPorCobrar-container">
@@ -31,6 +38,16 @@ const CobrosClientes = ({
             )}
             <span>
               {client?.fullName || "Sin nombre"}
+            </span>
+          </div>
+        </div>
+        <div className="flex justify-between items-center">
+          <div className="CuadroVentaCliente-text">
+            <span>
+             Pago:{" "}
+              <span className="text-blue_custom">
+                {paymentMethod}
+              </span>
             </span>
           </div>
         </div>

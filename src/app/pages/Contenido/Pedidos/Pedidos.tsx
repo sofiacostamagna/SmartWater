@@ -86,12 +86,21 @@ const Pedidos: FC = () => {
         filters = { ...queryData.filters };
 
         if (section === "Atendidos") {
-          // Aplica el filtro para mostrar solo los pedidos atendidos del día actual
-          const today = moment().format("YYYY-MM-DD");
-          if (!filters.attendedDateInit && !filters.attendedDateEnd) {
+          // Verifica si ya hay filtros personalizados aplicados
+          const hasCustomFilters =
+            filters.attendedDateInit ||
+            filters.attendedDateEnd ||
+            filters.initialDate ||
+            filters.finalDate ||
+            filters.distributorAttendedId;
+
+          // Aplica el filtro por defecto solo si no hay filtros personalizados
+          if (!hasCustomFilters) {
+            const today = moment().format("YYYY-MM-DD");
             filters.attendedDateInit = today;
             filters.attendedDateEnd = today;
           }
+
           filters.attended = true;
         } else {
           filters.attended = false;

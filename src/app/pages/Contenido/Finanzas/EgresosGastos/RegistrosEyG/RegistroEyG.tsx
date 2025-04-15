@@ -175,18 +175,22 @@ const RegistroEyG = () => {
                 hasFilter={!!savedFilters && Object.keys(savedFilters).length > 0}
                 searchPlaceholder="Buscar por nombre de usuario"
                 infoPedidos
-                infoPedidosData={
-                    Object.values(grouppedData)
-                        .sort((a, b) => a.name > b.name ? 1 : a === b ? 0 : -1)
-                        .map(row => (
-                            {
-                                text: (row?.name || "Cuenta no Reconociada"),
-                                value: `${millify(row.total, { precision: 2 })} Bs.`
-                            }
-                        ))
-                }
+                infoPedidosData={Object.values(
+                    items.reduce((acc, exp) => {
+                        const key = exp.accountEntry._id;
+                        if (!acc[key]) {
+                            acc[key] = { text: exp.accountEntry.name || "Cuenta no Reconocida", total: 0 };
+                        }
+                        acc[key].total += exp.amount; // Sum all amounts correctly
+                        return acc;
+                    }, {} as Record<string, { text: string; total: number }>)
+                ).map(item => ({
+                    text: item.text,
+              
+                    value: `${item.total.toLocaleString("en-US", { useGrouping: false, minimumFractionDigits: 2 })} Bs.` // Display without thousands separator
+                }))}
                 infoPedidosClass='mb-0'
-                otherResults={[{ text: "Total de egresos", value: `${items.reduce((cont, curr) => cont += curr.amount, 0).toLocaleString()} Bs.` }]}
+                otherResults={[{ text: "Total de egresos", value: `${items.reduce((cont, curr) => cont + curr.amount, 0).toLocaleString("en-US", { useGrouping: false, minimumFractionDigits: 2 })} Bs.` }]}
             >
                 <div className="w-full pb-6 sticky top-0 bg-main-background z-[20]">
                     <div className="w-full sm:w-1/2">

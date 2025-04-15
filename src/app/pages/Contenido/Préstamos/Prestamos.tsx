@@ -202,14 +202,14 @@ const Prestamos: FC = () => {
               )
               .reduce((acc, item) => {
                 if (!acc[item.itemId]) {
-                  acc[item.itemId] = { name: item.name, quantity: 0 };
+                  acc[item.itemId] = { text: item.name, totalQuantity: 0 };
                 }
-                acc[item.itemId].quantity += item.quantity;
+                acc[item.itemId].totalQuantity += item.quantity; // Sum quantities
                 return acc;
-              }, {} as Record<string, { name: string; quantity: number }>)
+              }, {} as Record<string, { text: string; totalQuantity: number }>)
           ).map(item => ({
-            text: `${item.quantity} ${item.name}`, // Mostrar cantidad y nombre del producto
-            value: `${item.quantity}` // Usar la cantidad como valor
+            text: item.text, // Show only the name
+            value: `${item.totalQuantity}` // Show only the total quantity
           }))}
           sorted={sort === 'asc' ? "older" : "new"}
         >

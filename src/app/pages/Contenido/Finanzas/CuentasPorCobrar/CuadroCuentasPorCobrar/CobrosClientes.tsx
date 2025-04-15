@@ -14,7 +14,7 @@ const CobrosClientes = ({
   const paymentMethod = bill.cashPayment
     ? "Efectivo"
     : bill.paymentMethodCurrentAccount
-    ? "Cta. Cte"
+    ? "Cta. Cte."
     : "Desconocido";
 
   return (

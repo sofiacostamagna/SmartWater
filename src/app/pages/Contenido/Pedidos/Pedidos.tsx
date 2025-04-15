@@ -76,63 +76,51 @@ const Pedidos: FC = () => {
 
   const getSales = useCallback(async () => {
     if (section) {
-      setLoading(true)
+      setLoading(true);
 
-      const promises: Promise<{ data: Order[] } & QueryMetadata | null>[] = []
+      const promises: Promise<{ data: Order[] } & QueryMetadata | null>[] = [];
 
-      let filters: IOrdersGetParams['filters'] = {}
+      let filters: IOrdersGetParams['filters'] = {};
 
       if (queryData) {
-        filters = { ...queryData.filters }
+        filters = { ...queryData.filters };
 
         if (section === "Atendidos") {
-          if (!filters.attendedDate && (!filters.initialDate && !filters.finalDate && !filters.distributorAttendedId)) {
-            filters.attendedDate = moment().format("YYYY-MM-DD")
+          // Aplica el filtro para mostrar solo los pedidos atendidos del día actual
+          const today = moment().format("YYYY-MM-DD");
+          if (!filters.attendedDateInit && !filters.attendedDateEnd) {
+            filters.attendedDateInit = today;
+            filters.attendedDateEnd = today;
           }
-          filters.attended = true
-
-          if (!filters.initialDate) {
-            filters.initialDate = "2020-01-01"
-          }
-          if (!filters.finalDate) {
-            filters.finalDate = moment().format("YYYY-MM-DD")
-          }
+          filters.attended = true;
         } else {
-          filters.attended = false
+          filters.attended = false;
         }
 
-        promises.push(OrdersApiConector.get({ pagination: { page: 1, pageSize: 30000, sort: queryData.pagination?.sort }, filters: { ...filters } }))
+        promises.push(
+          OrdersApiConector.get({
+            pagination: { page: 1, pageSize: 30000, sort: queryData.pagination?.sort },
+            filters: { ...filters },
+          })
+        );
       }
 
-      const responses = await Promise.all(promises)
-      let datSales: Order[] = []
-      let totalcount: number = 0
-      responses.forEach(r => {
-        datSales.push(...(r?.data || []))
-        totalcount += r?.metadata.totalCount || 0
-      })
-
-      if (queryData && (queryData.text || (queryData.clients && queryData.clients.length > 0))) {
-        datSales = datSales.filter(s => {
-          if (s.client && queryData.clients && queryData.clients.length > 0) {
-            return queryData.clients!.includes(s.client || "")
-          } else if (queryData.text) {
-            return !s.client && (
-              s.clientNotRegistered?.fullName?.toLowerCase().includes(queryData.text!.toLowerCase()) ||
-              s.clientNotRegistered?.phoneNumber?.includes(queryData.text!))
-          }
-          return true;
-        })
-      }
+      const responses = await Promise.all(promises);
+      let datSales: Order[] = [];
+      let totalcount: number = 0;
+      responses.forEach((r) => {
+        datSales.push(...(r?.data || []));
+        totalcount += r?.metadata.totalCount || 0;
+      });
 
       setCurrentData(datSales.splice(((queryData?.pagination?.page || 1) - 1) * itemsPerPage, itemsPerPage));
-      setTotalPage(Math.ceil(totalcount / itemsPerPage)); // Update total pages
-      setTotal(totalcount)
-      setLoading(false)
+      setTotalPage(Math.ceil(totalcount / itemsPerPage)); // Actualiza el total de páginas
+      setTotal(totalcount);
+      setLoading(false);
     } else {
       setCurrentData([]);
-      setTotalPage(0); // Update total pages
-      setTotal(0)
+      setTotalPage(0); // Actualiza el total de páginas
+      setTotal(0);
     }
   }, [queryData, setLoading, section]);
 

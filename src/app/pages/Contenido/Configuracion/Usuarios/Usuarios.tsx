@@ -36,16 +36,21 @@ const Usuarios: FC = () => {
     const [savedFilters, setSavedFilters] = useState<IUsersGetParams['filters']>({});
 
     const fetchData = useCallback(async () => {
-        setLoading(true)
+        setLoading(true);
 
-        const res = await UsersApiConector.get({ pagination: { page: 1, pageSize: 30000 }, filters: { role: 'user', desactivated: savedFilters?.desactivated ? savedFilters?.desactivated : false, ...savedFilters } })
-        const prods = res?.data || []
-        console.log(res)
-        setUsers(prods)
-        setTotalPages(Math.ceil(prods.length / ITEMS_PER_PAGE))
+        // Elimina el filtro que excluye usuarios desactivados
+        const res = await UsersApiConector.get({
+            pagination: { page: 1, pageSize: 30000 },
+            filters: { role: 'user', ...savedFilters } // No excluye desactivated
+        });
 
-        setLoading(false)
-    }, [setLoading, savedFilters])
+        const prods = res?.data || [];
+        console.log(res);
+        setUsers(prods);
+        setTotalPages(Math.ceil(prods.length / ITEMS_PER_PAGE));
+
+        setLoading(false);
+    }, [setLoading, savedFilters]);
 
     useEffect(() => {
         fetchData()
@@ -65,9 +70,13 @@ const Usuarios: FC = () => {
 
     useEffect(() => {
         if (users) {
-            const itms = users.filter(d => (!!d.fullName && d.fullName.toLowerCase().includes(searchParam.toLowerCase())) || (!!d.phoneNumber && d.phoneNumber.toLowerCase().includes(searchParam.toLowerCase())))
+            // Filtrar usuarios por nombre o teléfono, incluyendo desactivados
+            const itms = users.filter(d =>
+                (!!d.fullName && d.fullName.toLowerCase().includes(searchParam.toLowerCase())) ||
+                (!!d.phoneNumber && d.phoneNumber.toLowerCase().includes(searchParam.toLowerCase()))
+            );
             setFilteredUsers(itms);
-            setTotalPages(Math.ceil(itms.length / ITEMS_PER_PAGE))
+            setTotalPages(Math.ceil(itms.length / ITEMS_PER_PAGE));
             setPage(1);
         }
     }, [users, searchParam])

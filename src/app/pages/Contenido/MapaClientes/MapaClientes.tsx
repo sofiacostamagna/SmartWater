@@ -32,6 +32,9 @@ const MapaClientes: React.FC = () => {
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
 
   const [distribuidores, setDistribuidores] = useState<User[]>([]);
+  const filteredClients = clients.filter(client => 
+  client.location?.latitude && client.location?.longitude
+);
 
   const filterRef = useRef<IFiltroPaginadoReference>(null)
   const [savedFilters, setSavedFilters] = useState<IClientGetParams['filters'] & { status?: ClientStatus[] }>({});
@@ -94,53 +97,67 @@ const MapaClientes: React.FC = () => {
 
   const fetchClients = useCallback(async () => {
     if (passedThis) {
-      setLoading(true)
+      setLoading(true);
+
       const ordersData = await OrdersApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
       const ords = ordersData?.data || [];
       const loansData = await LoansApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
       const loans = loansData?.data || [];
 
-      const qd = { ...queryData }
-      const extraFilters: IClientGetParams['filters'] = {}
+      const qd = { ...queryData };
+      const extraFilters: IClientGetParams['filters'] = {};
 
       if (!!qd.filters?.initialDate && !qd.filters?.finalDate) {
-        extraFilters.finalDate = moment().format("YYYY-MM-DD")
+        extraFilters.finalDate = moment().format("YYYY-MM-DD");
       }
       if (!qd.filters?.initialDate && !!qd.filters?.finalDate) {
-        extraFilters.initialDate = "2020-01-01"
+        extraFilters.initialDate = "2020-01-01";
       }
 
-      const clientsData = await ClientsApiConector.getClients({ pagination: { page: 1, pageSize: 30000 }, filters: { ...qd.filters, ...extraFilters, clientDeleted: false } });
+      const clientsData = await ClientsApiConector.getClients({
+        pagination: { page: 1, pageSize: 30000 },
+        filters: { ...qd.filters, ...extraFilters, clientDeleted: false },
+      });
+
       let clientsToSet = clientsData?.data || [];
 
       let clientsWithStatus: (Client & { status: ClientStatus })[] = clientsToSet.map((client) => {
-        const status = getClientStatus(client, ords)
-        if (status === 'inProgress') {
-          const activeOrders = getClientActiveOrders(client, ords)
-          return { ...client, status, numberOfOrders: activeOrders.length, associatedOrders: activeOrders, numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length }
-        } else {
-          return { ...client, status, associatedOrders: [], numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length }
-        }
+        const status = getClientStatus(client, ords);
+        return {
+          ...client,
+          status,
+          associatedOrders: [],
+          numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length,
+        };
       });
 
-      if (ords) {
-        clientsWithStatus.push(...ords.filter(o => !o.client && !o.attended).map((o) => ({ ...o.clientNotRegistered as unknown as Client, isClient: false, isAgency: false, associatedOrders: [o._id], status: getClientStatusFromOrder(o), numberOfOrders: 1 })))
+      // Filtrar clientes según el estado seleccionado
+      if (qd.status && qd.status.length > 0) {
+        clientsWithStatus = clientsWithStatus.filter(client =>
+          qd.status?.includes(client.status)
+        );
       }
 
-      if (qd.text) {
-        clientsWithStatus = clientsWithStatus.filter(
-          (client) =>
-            client.fullName?.toLowerCase().includes(qd.text!.toLowerCase()) ||
-            client.phoneNumber?.includes(qd.text!)
-        )
+      // Incluir clientes no registrados si el único filtro activo es "Pedidos en curso"
+      if (qd.status?.includes('inProgress') && !qd.filters?.isClient) {
+        if (ords) {
+          clientsWithStatus.push(
+            ...ords
+              .filter(o => !o.client && !o.attended)
+              .map((o) => ({
+                ...o.clientNotRegistered as unknown as Client,
+                isClient: false,
+                isAgency: false,
+                associatedOrders: [o._id],
+                status: getClientStatusFromOrder(o),
+                numberOfOrders: 1,
+              }))
+          );
+        }
       }
 
-      if (qd.status) {
-        clientsWithStatus = clientsWithStatus.filter((client) => qd.status!.includes(client.status))
-      }
       setClients(clientsWithStatus);
-
-      setLoading(false)
+      setLoading(false);
     }
   }, [queryData, setLoading, passedThis]);
 
@@ -181,7 +198,17 @@ const MapaClientes: React.FC = () => {
 
   // Función para manejar clics en los íconos de estado
   const handleStatusFilterClick = (statusKey: ClientStatus) => {
-    const newFilters = { ...savedFilters, status: [statusKey] }; // Reemplazar con el nuevo filtro
+    const newFilters = {
+      ...savedFilters,
+      status: [statusKey], // Combina el estado actual con el nuevo
+    };
+  
+    // Si el estado es "inProgress", asegúrate de incluir solo clientes registrados
+    if (statusKey === "inProgress") {
+      newFilters.isClient = true;
+    
+    }
+  
     handleFilterChange(newFilters); // Actualizar los filtros
   };
 
@@ -304,7 +331,13 @@ const MapaClientes: React.FC = () => {
         ></FiltroPaginado>
      
         <div className="MapaClientes w-full flex-1 pb-10">
-          <LeafletMap onAdd={() => setSelectedOption(true)} clients={clients} latitude={latitude} longitude={longitude} setSelectedClient={setSelectedClient} />
+        <LeafletMap
+  onAdd={() => setSelectedOption(true)}
+  clients={filteredClients} 
+  latitude={latitude}
+  longitude={longitude}
+  setSelectedClient={setSelectedClient}
+/>
         </div>
       </div>
 

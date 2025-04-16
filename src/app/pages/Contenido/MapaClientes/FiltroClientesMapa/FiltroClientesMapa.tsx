@@ -122,7 +122,7 @@ const FiltroClientesMapa = ({
         setValue('withoutLoanBalance', !initialFilters.hasBalanceLoan, { shouldValidate: true });
       }
     }
-  }, [initialFilters, setValue, distribuidores])
+  }, [initialFilters, setValue, distribuidores]); 
 
   const onSubmit = (data: IClientFilters) => {
     const filters = filterClients(data);
@@ -130,79 +130,113 @@ const FiltroClientesMapa = ({
     setShowFiltro(false);
   };
 
+
   const filterClients = (filters: IClientFilters): IClientGetParams['filters'] & { status?: ClientStatus[] } => {
     const result: IClientGetParams['filters'] & { status?: ClientStatus[] } = {}
-
-    // Filter by date range
-    if (filters.fromDate) { result.initialDate = filters.fromDate.toString() }
-    if (filters.toDate) { result.finalDate = filters.toDate.toString() }
-
-    // Filter by zones
-    if (filters.zones) {
-      const zones = Object.values(filters.zones).filter(z => !!z).join(',')
-      if (zones !== "") { result.zone = zones }
+  
+    // **1. Filtros de Renovación**
+    if (filters.daysSinceRenewed > 0) {
+      result.renewedAgo = filters.daysSinceRenewed;
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by status
-    if (filters.status) {
-      const statuses = Object.values(filters.status).filter(z => !!z)
-      if (statuses.length > 0) { result.status = statuses as ClientStatus[] }
+    
+    if (filters.daysToRenew > 0) {
+      result.renewedIn = filters.daysToRenew;
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by renewal days
-    if (filters.daysSinceRenewed > 0) { result.renewedAgo = filters.daysSinceRenewed }
-    if (filters.daysToRenew > 0) { result.renewedIn = filters.daysToRenew }
-
-    // Ensure only registered clients for contracts and loans
-    result.isClient = true;
-
-    // Filter by contracts
-    if (!((!!filters.withContract && !!filters.withoutContract) || (!filters.withContract && !filters.withoutContract))) {
-      result.hasContract = filters.withContract;
+  
+    // **2. Filtros de Fechas**
+    if (filters.fromDate) {
+      result.initialDate = filters.fromDate.toString();
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by credit
-    if (!((!!filters.withCredit && !!filters.withoutCredit) || (!filters.withCredit && !filters.withoutCredit))) {
-      result.hasCredit = filters.withCredit
+    if (filters.toDate) {
+      result.finalDate = filters.toDate.toString();
+      result.isClient = true; // Solo clientes registrados
     }
-
-
-    // Filter by expired contracts
-    if (!((!!filters.withExpiredContract && !!filters.withoutExpiredContract) || (!filters.withExpiredContract && !filters.withoutExpiredContract))) {
-      result.hasExpiredContracts = filters.withExpiredContract;
-    }
-
-    // Filter by loans
+  
+    // **3. Filtros de Préstamos y Contratos**
     if (filters.withLoans) {
       result.hasLoan = true;
-      result.hasBalanceLoan = true; 
+      result.hasBalanceLoan = true; // Solo clientes con saldo en préstamos
+      result.isClient = true; // Solo clientes registrados
     } else if (filters.withoutLoans) {
       result.hasLoan = false;
-      result.hasBalanceLoan = false; 
-    } else {
-      delete result.hasLoan;
-      delete result.hasBalanceLoan; 
+      result.hasBalanceLoan = false;
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by loan balance
-    if (!filters.withLoans && !filters.withoutLoans) {
-      delete result.hasBalanceLoan; 
+  
+    if (filters.withContract) {
+      result.hasContract = true;
+      result.isClient = true; // Solo clientes registrados
+    } else if (filters.withoutContract) {
+      result.hasContract = false;
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by orders (include both registered and unregistered clients)
-    if (!((!!filters.withOrder && !!filters.withoutOrder) || (!filters.withOrder && !filters.withoutOrder))) {
-      result.hasOrder = filters.withOrder;
-      delete result.isClient; 
+  
+    if (filters.withExpiredContract) {
+      result.hasExpiredContracts = true;
+      result.isClient = true; // Solo clientes registrados
+    } else if (filters.withoutExpiredContract) {
+      result.hasExpiredContracts = false;
+      result.isClient = true; // Solo clientes registrados
     }
-
-    // Filter by selected distributors
+  
+    // **4. Filtros de Cuentas por Cobrar**
+    if (filters.withCredit) {
+      result.hasCredit = true;
+      result.isClient = true; // Solo clientes registrados
+    } else if (filters.withoutCredit) {
+      result.hasCredit = false;
+      result.isClient = true; // Solo clientes registrados
+    }
+  
+    // **5. Filtros de Clientes (Estados)**
+    if (filters.status) {
+      const statuses = Object.values(filters.status).filter((z) => !!z);
+      if (statuses.length > 0) {
+        result.status = statuses as ClientStatus[];
+    
+        // Si el estado incluye "Pedidos en curso", verifica si hay otros filtros activos
+        if (statuses.includes("inProgress")) {
+          const hasOtherFilters =
+            filters.withLoans ||
+            filters.withContract ||
+            filters.withCredit ||
+            filters.daysSinceRenewed > 0 ||
+            filters.daysToRenew > 0 ||
+            filters.fromDate ||
+            filters.toDate;
+    
+          if (hasOtherFilters) {
+            result.isClient = true; // Excluir clientes no registrados si hay otros filtros
+          } else {
+            delete result.isClient; // Permitir clientes no registrados solo si no hay otros filtros
+          }
+        } else {
+          result.isClient = true; // Excluir clientes no registrados para otros estados
+        }
+      }
+    }
+  
+    // **6. Filtros de Zonas**
+    if (filters.zones) {
+      const zones = Object.values(filters.zones).filter((z) => !!z).join(',');
+      if (zones !== '') {
+        result.zone = zones;
+      }
+    }
+  
+    // **7. Filtros de Distribuidores**
     if (selectedDists.length > 0) {
-      const dists = selectedDists.map(z => z._id).join(',')
-      if (dists !== "") { result.user = dists }
+      const dists = selectedDists.map((z) => z._id).join(',');
+      if (dists !== '') {
+        result.user = dists;
+      }
     }
-
-    console.log("Generated Filters:", result); 
-
+  
+    console.log('Generated Filters:', result);
+  
     return result;
   };
 
@@ -460,46 +494,6 @@ const FiltroClientesMapa = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <p className="font-semibold text-blue_custom">Saldo en préstamos</p>
-        <div className="flex flex-wrap gap-6">
-          <div className="flex gap-3 items-center">
-            <input
-              className="input-check accent-blue_custom"
-              type="checkbox"
-              id="check21"
-              checked={watch('withLoanBalance')}
-              onChange={() => {
-                const hasBalance = watch("withLoanBalance");
-                setValue("withLoanBalance", !hasBalance);
-                setValue("withoutLoanBalance", false);
-              }}
-            />
-            <img src="/loan-balance-positive.svg" alt="" />
-            <label htmlFor="check21" className="text-sm">
-              Con saldo en préstamos
-            </label>
-          </div>
-          <div className="flex gap-3 items-center">
-            <input
-              className="input-check accent-blue_custom"
-              type="checkbox"
-              id="check22"
-              checked={watch('withoutLoanBalance')}
-              onChange={() => {
-                const noBalance = watch("withoutLoanBalance");
-                setValue("withoutLoanBalance", !noBalance);
-                setValue("withLoanBalance", false);
-              }}
-            />
-            <img src="/loan-balance-zero.svg" alt="" />
-            <label htmlFor="check22" className="text-sm">
-              Sin saldo en préstamos
-            </label>
-          </div>
-        </div>
-      </div>
-
       <div className="w-full flex flex-col gap-2">
         <label className="font-semibold text-blue_custom">Clientes</label>
         <div className="flex flex-wrap gap-x-6 gap-y-4">
@@ -621,11 +615,11 @@ const FiltroClientesMapa = ({
       </div>
 
       <div className="flex justify-between w-full items-center gap-3 px-4">
-        <button
+      <button
           type="button"
           onClick={() => {
             setShowFiltro(false);
-            onChange({ hasBalanceLoan: false }); // Provide a default value for hasBalanceLoan
+            onChange({});
           }}
           className="mt-4 border-blue-500 border-2 rounded-full px-4 py-2.5 shadow-xl text-blue-500 font-bold w-full"
         >

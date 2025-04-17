@@ -109,57 +109,99 @@ const MonitoreoDistribuidores: FC = () => {
         return 'default'
     }
 
-    const fetchClients = useCallback(async () => {
-        if (passedThis) {
-            setLoading(true)
-            const ordersData = await OrdersApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
-            const ords = ordersData?.data || [];
-            const loansData = await LoansApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
-            const loans = loansData?.data || [];
-
-            const qd = { ...queryData }
-            const extraFilters: IClientGetParams['filters'] = {}
-
-            if (!!qd.filters?.initialDate && !qd.filters?.finalDate) {
-                extraFilters.finalDate = moment().format("YYYY-MM-DD")
-            }
-            if (!qd.filters?.initialDate && !!qd.filters?.finalDate) {
-                extraFilters.initialDate = "2020-01-01"
-            }
-
-            const clientsData = await ClientsApiConector.getClients({ pagination: { page: 1, pageSize: 30000 }, filters: { ...qd.filters, ...extraFilters, clientDeleted: false } });
-            let clientsToSet = clientsData?.data || [];
-
-            let clientsWithStatus: (Client & { status: ClientStatus })[] = clientsToSet.map((client) => {
-                const status = getClientStatus(client, ords)
-                if (status === 'inProgress') {
-                    const activeOrders = getClientActiveOrders(client, ords)
-                    return { ...client, status, numberOfOrders: activeOrders.length, associatedOrders: activeOrders, numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length }
-                } else {
-                    return { ...client, status, associatedOrders: [], numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length }
-                }
-            });
-
-            if (ords) {
-                clientsWithStatus.push(...ords.filter(o => !o.client && !o.attended).map((o) => ({ ...o.clientNotRegistered as unknown as Client, isClient: false, isAgency: false, associatedOrders: [o._id], status: getClientStatusFromOrder(o), numberOfOrders: 1 })))
-            }
-
-            if (qd.text) {
-                clientsWithStatus = clientsWithStatus.filter(
-                    (client) =>
-                        client.fullName?.toLowerCase().includes(qd.text!.toLowerCase()) ||
-                        client.phoneNumber?.includes(qd.text!)
-                )
-            }
-
-            if (qd.status) {
-                clientsWithStatus = clientsWithStatus.filter((client) => qd.status!.includes(client.status))
-            }
-            setClients(clientsWithStatus);
-
-            setLoading(false)
+  const fetchClients = useCallback(async () => {
+      if (passedThis) {
+        setLoading(true);
+  
+        const ordersData = await OrdersApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
+        const ords = ordersData?.data || [];
+        const loansData = await LoansApiConector.get({ pagination: { page: 1, pageSize: 30000 } });
+        const loans = loansData?.data || [];
+  
+        const qd = { ...queryData };
+        const extraFilters: IClientGetParams['filters'] = {};
+  
+        if (!!qd.filters?.initialDate && !qd.filters?.finalDate) {
+          extraFilters.finalDate = moment().format("YYYY-MM-DD");
         }
+        if (!qd.filters?.initialDate && !!qd.filters?.finalDate) {
+          extraFilters.initialDate = "2020-01-01";
+        }
+  
+        let filteredOrders = ords;
+  
+      // Apply filter of orders attended only for the current day if the selected status is "attended"
+      if (qd.status?.includes("attended")) {
+        const todayStart = moment().startOf('day');
+        const todayEnd = moment().endOf('day');
+  
+        filteredOrders = ords.filter(o => {
+          const attendedDate = moment(o.attended);
+          return (
+            o.attended &&
+            attendedDate.isBetween(todayStart, todayEnd, undefined, '[]')
+          );
+        });
+      }
+  
+        const clientsData = await ClientsApiConector.getClients({
+          pagination: { page: 1, pageSize: 30000 },
+          filters: { ...qd.filters, ...extraFilters, clientDeleted: false },
+        });
+  
+        let clientsToSet = clientsData?.data || [];
+  
+        let clientsWithStatus: (Client & { status: ClientStatus })[] = clientsToSet.map((client) => {
+          const status = getClientStatus(client, filteredOrders);
+          return {
+            ...client,
+            status,
+            associatedOrders: filteredOrders
+              .filter(o => o.client === client._id)
+              .map(o => o._id), // Associate the orders served to the customer
+            numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length,
+          };
+        });
+  
+      // Filter clients based on the selected status
+        if (qd.status && qd.status.length > 0) {
+          clientsWithStatus = clientsWithStatus.filter(client =>
+            qd.status?.includes(client.status)
+          );
+        }
+  
+  // Include unregistered customers if the filter has no restrictions
+        const hasRestrictiveFilters =
+          qd.filters?.hasLoan || 
+          qd.filters?.hasContract || 
+          qd.filters?.hasCredit || 
+          (qd.filters?.renewedAgo !== undefined && qd.filters?.renewedAgo > 0) || 
+          (qd.filters?.renewedIn !== undefined && qd.filters?.renewedIn > 0) || 
+          qd.filters?.initialDate || 
+          qd.filters?.finalDate;
+  
+        if (!hasRestrictiveFilters) {
+          if (qd.status?.includes('inProgress')) {
+            clientsWithStatus.push(
+              ...ords
+                .filter(o => !o.client && !o.attended) 
+                .map((o) => ({
+                  ...o.clientNotRegistered as unknown as Client,
+                  isClient: false,
+                  isAgency: false,
+                  associatedOrders: [o._id],
+                  status: getClientStatusFromOrder(o),
+                  numberOfOrders: 1,
+                }))
+            );
+          }
+        }
+  
+        setClients(clientsWithStatus);
+        setLoading(false);
+      }
     }, [queryData, setLoading, passedThis]);
+  
 
     useEffect(() => {
         fetchClients();

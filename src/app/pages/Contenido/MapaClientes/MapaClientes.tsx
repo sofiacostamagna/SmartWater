@@ -76,12 +76,28 @@ const MapaClientes: React.FC = () => {
   }, [query, setQuery])
 
   const getClientStatus = (client: Client, orders: Order[]): ClientStatus => {
-    if (orders.some(o => !o.attended && o.client === client._id)) { return 'inProgress' }
-    if (orders.some(o => o.attended && moment(o.attended).isSame(moment(), 'day') && o.client === client._id)) { return 'attended' }
-    if (client.renewDate) {
-      if (moment().isAfter(client.renewDate)) { return 'renewClient' }
+    const twoDaysAgoStart = moment().subtract(2, 'days').startOf('day'); // Started two days ago
+    const todayEnd = moment().endOf('day'); // End of current day
+  
+    if (orders.some(o => !o.attended && o.client === client._id)) {
+      return 'inProgress';
     }
-    return 'default'
+    if (
+      orders.some(
+        o =>
+          o.attended &&
+          moment(o.attended).isBetween(twoDaysAgoStart, todayEnd, undefined, '[]') &&
+          o.client === client._id
+      )
+    ) {
+      return 'attended';
+    }
+    if (client.renewDate) {
+      if (moment().isAfter(client.renewDate)) {
+        return 'renewClient';
+      }
+    }
+    return 'default';
   }
 
   const getClientActiveOrders = (client: Client, orders: Order[]): string[] => {
@@ -90,11 +106,18 @@ const MapaClientes: React.FC = () => {
   }
 
   const getClientStatusFromOrder = (o: Order): ClientStatus => {
-    if (!o.attended) { return 'inProgress' }
-    if (o.attended && moment(o.attended).isSame(moment(), 'day')) { return 'attended' }
-    return 'default'
-  }
-
+    const todayStart = moment().startOf('day');
+    const todayEnd = moment().endOf('day');
+  
+    if (!o.attended) {
+      return 'inProgress';
+    }
+    if (o.attended && moment(o.attended).isBetween(todayStart, todayEnd, undefined, '[]')) {
+      return 'attended';
+    }
+    return 'default';
+  };
+  
   const fetchClients = useCallback(async () => {
     if (passedThis) {
       setLoading(true);
@@ -114,6 +137,22 @@ const MapaClientes: React.FC = () => {
         extraFilters.initialDate = "2020-01-01";
       }
 
+      let filteredOrders = ords;
+
+    // Apply filter of orders attended only for the current day if the selected status is "attended"
+    if (qd.status?.includes("attended")) {
+      const todayStart = moment().startOf('day');
+      const todayEnd = moment().endOf('day');
+
+      filteredOrders = ords.filter(o => {
+        const attendedDate = moment(o.attended);
+        return (
+          o.attended &&
+          attendedDate.isBetween(todayStart, todayEnd, undefined, '[]')
+        );
+      });
+    }
+
       const clientsData = await ClientsApiConector.getClients({
         pagination: { page: 1, pageSize: 30000 },
         filters: { ...qd.filters, ...extraFilters, clientDeleted: false },
@@ -122,28 +161,39 @@ const MapaClientes: React.FC = () => {
       let clientsToSet = clientsData?.data || [];
 
       let clientsWithStatus: (Client & { status: ClientStatus })[] = clientsToSet.map((client) => {
-        const status = getClientStatus(client, ords);
+        const status = getClientStatus(client, filteredOrders);
         return {
           ...client,
           status,
-          associatedOrders: [],
+          associatedOrders: filteredOrders
+            .filter(o => o.client === client._id)
+            .map(o => o._id), // Associate the orders served to the customer
           numberOfLoans: loans.filter(l => l.client.some(c => c._id === client._id)).length,
         };
       });
 
-      // Filtrar clientes según el estado seleccionado
+    // Filter clients based on the selected status
       if (qd.status && qd.status.length > 0) {
         clientsWithStatus = clientsWithStatus.filter(client =>
           qd.status?.includes(client.status)
         );
       }
 
-      // Incluir clientes no registrados si el único filtro activo es "Pedidos en curso"
-      if (qd.status?.includes('inProgress') && !qd.filters?.isClient) {
-        if (ords) {
+// Include unregistered customers if the filter has no restrictions
+      const hasRestrictiveFilters =
+        qd.filters?.hasLoan || 
+        qd.filters?.hasContract || 
+        qd.filters?.hasCredit || 
+        (qd.filters?.renewedAgo !== undefined && qd.filters?.renewedAgo > 0) || 
+        (qd.filters?.renewedIn !== undefined && qd.filters?.renewedIn > 0) || 
+        qd.filters?.initialDate || 
+        qd.filters?.finalDate;
+
+      if (!hasRestrictiveFilters) {
+        if (qd.status?.includes('inProgress')) {
           clientsWithStatus.push(
             ...ords
-              .filter(o => !o.client && !o.attended)
+              .filter(o => !o.client && !o.attended) 
               .map((o) => ({
                 ...o.clientNotRegistered as unknown as Client,
                 isClient: false,

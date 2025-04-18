@@ -13,6 +13,27 @@ import { AuthService } from "../../../api/services/AuthService";
 import toast from "react-hot-toast";
 import { Client } from "../../../type/Cliente/Client";
 
+const getCoordinatesFromAddress = async (
+  address: string
+): Promise<{ lat: number; lng: number } | null> => {
+  const apiKey = process.env.REACT_APP_API_GOOGLE;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+    address
+  )}&key=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.status === "OK" && data.results[0]) {
+      const { lat, lng } = data.results[0].geometry.location;
+      return { lat, lng };
+    }
+  } catch (error) {
+    console.error("Error al obtener coordenadas:", error);
+  }
+  return null;
+};
+
 const ClientForm = ({
   isOpen,
   onCancel,
@@ -41,15 +62,60 @@ const ClientForm = ({
     {
       defaultValues: {
         ...selectedClient,
-        fullName: (!selectedClient || selectedClient.fullName === "Sin nombre") ? "" : selectedClient.fullName,
-        zone: selectedClient.zone, district: selectedClient.district,
-        phoneLandLine: selectedClient.phoneLandLine ? formatNumber(selectedClient.phoneLandLine, "BO", "NATIONAL").replaceAll(" ", "") : undefined,
+        address: selectedClient.address || "", // Dirección predeterminada
+        district: selectedClient.district || "", // Barrio predeterminado
+        phoneLandLine: selectedClient.phoneLandLine
+          ? formatNumber(selectedClient.phoneLandLine, "BO", "NATIONAL").replaceAll(" ", "")
+          : undefined,
         phoneNumber: formatNumber(selectedClient.phoneNumber, "BO", "NATIONAL").replaceAll(" ", ""),
-        address: selectedClient.address,
-        dayrenew: Number(selectedClient.renewInDays) > 0,
+        dayrenew: Number(selectedClient.renewInDays) > 0, // Valor booleano para dayrenew
+        user: selectedClient.user || "", // Usuario predeterminado
+        isClient: selectedClient.isClient || false, // Cliente habitual
+        isAgency: selectedClient.isAgency || false, // Agencia
+        storeImage: selectedClient.storeImage || "", // Imagen de la tienda
+        clientImage: selectedClient.clientImage || "", // Imagen del cliente
+        fullName: selectedClient.fullName || "", // Nombre completo
+        billingInfo: selectedClient.billingInfo || { name: "", NIT: "" }, // Información de facturación
+        location: selectedClient.location || { latitude: "", longitude: "" }, // Coordenadas
+        reference: selectedClient.reference || "", // Referencia
+        zone: selectedClient.zone || "", // Zona
+        email: selectedClient.email || "", // Correo electrónico
+        renewInDays: selectedClient.renewInDays || 0, // Días de renovación
+        hasOrder: selectedClient.hasOrder || false, // Renovación promedio
+        hasContract: selectedClient.hasContract || false, // Contrato
+        hasLoan: selectedClient.hasLoan || false, // Préstamo
+        renewDate: selectedClient.renewDate || "", // Fecha de renovación
+        created: selectedClient.created || "", // Fecha de creación
+        updated: selectedClient.updated || "", // Fecha de actualización
       },
     } :
-    {};
+    {
+      defaultValues: {
+        address: "",
+        district: "",
+        phoneLandLine: undefined,
+        phoneNumber: "",
+        dayrenew: true,
+        user: "",
+        isClient: true,
+        isAgency: false,
+        storeImage: "",
+        clientImage: "",
+        fullName: "",
+        billingInfo: { name: "", NIT: "" },
+        location: { latitude: "", longitude: "" },
+        reference: "",
+        zone: "",
+        email: "",
+        renewInDays: 0,
+        hasOrder: false,
+        hasContract: false,
+        hasLoan: false,
+        renewDate: "", // Valor predeterminado para nuevos clientes
+        created: "", // Valor predeterminado para nuevos clientes
+        updated: "", // Valor predeterminado para nuevos clientes
+      },
+    };
 
   const {
     register,
@@ -177,14 +243,8 @@ const ClientForm = ({
     }
   }
 
-  const selectedZone = watch('zone')
-  useEffect(() => {
-    if (selectedZone) {
-      const zon = zones.find(z => z._id === selectedZone)
-      const dists = zon?.districts || []
-      setDisti(dists)
-    }
-  }, [selectedZone, zones, setValue, selectedClient])
+
+ 
 
   const handleCheckboxChange = (type: "isClient" | "isAgency") => {
     if (type === "isClient") {
@@ -219,18 +279,23 @@ const ClientForm = ({
     }
   }, [selectedClient, setValue]);
 
+  useEffect(() => {
+    if (selectedClient.district) {
+      setSelectedDistrict(selectedClient.district); // Establece el distrito seleccionado
+      setValue("district", selectedClient.district, { shouldValidate: true });
+    }
+  }, [selectedClient, setValue]);
+
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string>(`https://www.google.com/maps?q=`)
   const address = watch("address")
   useEffect(() => {
     if (address) {
-      const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(address)}`
-      setGoogleMapsUrl(newAddress)
-      setValue('linkAddress', newAddress)
+      const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
+      setGoogleMapsUrl(newAddress);
     } else {
-      setGoogleMapsUrl("https://www.google.com/maps?q")
-      setValue('linkAddress', "")
+      setGoogleMapsUrl("https://www.google.com/maps?q");
     }
-  }, [address, setValue])
+  }, [address]);
 
   const saveImage = async (file: File) => {
     const formData = new FormData();
@@ -265,6 +330,17 @@ const ClientForm = ({
     : disti.filter((district) =>
       district.name.toLowerCase().includes(districtSearchTerm.toLowerCase())
     );
+    // Agrega este useEffect para cargar coordenadas iniciales
+useEffect(() => {
+  if (selectedClient._id && selectedClient.address) {
+    getCoordinatesFromAddress(selectedClient.address).then(coords => {
+      if (coords) {
+        setValue("location.latitude", coords.lat.toString());
+        setValue("location.longitude", coords.lng.toString());
+      }
+    });
+  }
+}, [selectedClient, setValue]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -284,6 +360,20 @@ const ClientForm = ({
     setValue("district", id, { shouldValidate: true });
     setShowDistrictDropdown(false);
   };
+
+  useEffect(() => {
+    const selectedZoneId = watch("zone"); // Obtiene la zona seleccionada
+    if (selectedZoneId) {
+      const selectedZone = zones.find((z) => z._id === selectedZoneId);
+      if (selectedZone) {
+        setDisti(selectedZone.districts || []); // Actualiza los barrios de la zona seleccionada
+      } else {
+        setDisti([]); // Limpia los barrios si no hay una zona válida
+      }
+    } else {
+      setDisti([]); // Limpia los barrios si no hay zona seleccionada
+    }
+  }, [watch("zone"), zones]);
 
   return (
     <form
@@ -423,12 +513,26 @@ const ClientForm = ({
         />
 
         <div>
-          <Input
-            label="Dirección"
-            name="address"
-            register={register}
-            errors={errors.address}
-          />
+        <Input
+  label="Dirección"
+  name="address"
+  register={register}
+  errors={errors.address}
+  onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAddress = e.target.value;
+    setValue("address", newAddress); // Guarda la dirección ingresada por el usuario
+
+    // Obtén las coordenadas basadas en la dirección ingresada
+    const coords = await getCoordinatesFromAddress(newAddress);
+    if (coords) {
+      setValue("location.latitude", coords.lat.toString());
+      setValue("location.longitude", coords.lng.toString());
+
+      // Actualiza el mapa con las nuevas coordenadas
+      setGoogleMapsUrl(`https://www.google.com/maps?q=${coords.lat},${coords.lng}`);
+    }
+  }}
+/>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -484,97 +588,68 @@ const ClientForm = ({
           )}
         </motion.div>
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ delay: 0.3 }}
-          className="w-full flex flex-col gap-2"
-        >
-          <label>Barrio</label>
-          <div className="relative" ref={districtDropdownRef}>
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  transition={{ delay: 0.3 }}
+  className="w-full flex flex-col gap-2"
+>
+  <label>Barrio</label>
+  <div className="relative" ref={districtDropdownRef}>
+    <div
+      className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black flex justify-between items-center`}
+      onClick={() => setShowDistrictDropdown(!showDistrictDropdown)}
+    >
+      <span>
+        {selectedDistrict
+          ? disti.find((d) => d._id === selectedDistrict)?.name || "Sin selección"
+          : "Selecciona un barrio"}
+      </span>
+      <i className={`fa-solid fa-angle-down transition-transform ${showDistrictDropdown ? "rotate-180" : ""}`}></i>
+    </div>
+    {showDistrictDropdown && (
+      <div
+        className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
+      >
+        <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
+          <input
+            type="text"
+            className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
+            placeholder="Buscar..."
+            onChange={(e) => setDistrictSearchTerm(e.target.value)}
+          />
+        </div>
+        {filteredDistricts.length > 0 ? (
+          filteredDistricts.map((district, index) => (
             <div
-              className={`relative cursor-pointer p-2 py-2.5 rounded-md font-pricedown focus:outline-4 bg-main-background outline outline-2 outline-black flex justify-between items-center`}
-              onClick={() => setShowDistrictDropdown(!showDistrictDropdown)}
+              key={index}
+              className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
+              onClick={() => handleSelectDistrict(district._id)}
             >
-              <span>
-                {selectedDistrict
-                  ? disti.find((d) => d._id === selectedDistrict)?.name || "Sin selección"
-                  : "Selecciona un barrio"}
-              </span>
-              <i className={`fa-solid fa-angle-down transition-transform ${showDistrictDropdown ? "rotate-180" : ""}`}></i>
+              {district.name}
             </div>
-            {showDistrictDropdown && (
-              <div
-                className="absolute top-full translate-y-3 left-0 w-full border rounded-md shadow-md z-[9999] max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-200 bg-main-background dark:border-gray-600 text-base flex flex-col text-start"
-              >
-                <div className="py-3 px-4 sticky top-0 w-full bg-main-background">
-                  <input
-                    type="text"
-                    className="w-full rounded-md bg-transparent outline-none border-2 border-black text-font-color px-2 py-1 dark:border-gray-600 dark:text-white"
-                    placeholder="Buscar..."
-                    onChange={(e) => setDistrictSearchTerm(e.target.value)}
-                  />
-                </div>
-                {filteredDistricts.length > 0 ? (
-                  filteredDistricts.map((district, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-3 whitespace-nowrap hover:bg-blue-500 hover:text-white rounded-md cursor-pointer text-font-color dark:text-white"
-                      onClick={() => handleSelectDistrict(district._id)}
-                    >
-                      {district.name}
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                    Sin opciones
-                  </div>
-                )}
-              </div>
-            )}
+          ))
+        ) : (
+          <div className="px-4 py-3 text-gray-500 dark:text-gray-400">
+            Sin opciones
           </div>
-          <input
-            type="hidden"
-            {...register("district", {
-              required: "El barrio es requerido",
-            })}
-          />
-          {errors.district && (
-            <span className="text-red-500 font-normal text-sm font-pricedown">
-              <i className="fa-solid fa-triangle-exclamation"></i>{" "}
-              {errors.district.message}
-            </span>
-          )}
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ delay: 0.3 }}
-          className="w-full flex gap-3 text-md items-center col-span-2 max-sm:col-span-1"
-        >
-          <input
-            type="checkbox"
-            {...register("isClient", {
-              onChange: (e) => handleCheckboxChange("isClient"),
-            })}
-            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
-            id="isClient"
-          />
-          <label htmlFor="isClient" className="mr-4">
-            Cliente Habitual
-          </label>
-          <input
-            type="checkbox"
-            {...register("isAgency", {
-              onChange: (e) => handleCheckboxChange("isAgency"),
-            })}
-            className="w-5 h-5 text-blue-900 bg-gray-100 border-gray-300 rounded accent-blue-700"
-            id="isAgency"
-          />
-          <label htmlFor="isAgency">Agencia</label>
-        </motion.div>
-      
+        )}
+      </div>
+    )}
+  </div>
+  <input
+    type="hidden"
+    {...register("district", {
+      required: "El barrio es requerido",
+    })}
+  />
+  {errors.district && (
+    <span className="text-red-500 font-normal text-sm font-pricedown">
+      <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+      {errors.district.message}
+    </span>
+  )}
+</motion.div>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -584,16 +659,19 @@ const ClientForm = ({
         >
           <h1 className="text-sm font-medium">Selecciona una ubicación en el mapa</h1>
           <GoogleMapWithSelection
-            visible={isOpen}
-            disable={mapinteration}
-            linkAddress={watch("linkAddress")}
-            latitude={Number(watch("location.latitude"))}
-            longitude={Number(watch("location.longitude"))}
-            onChange={(coordinates: { lat: number; lng: number }) => {
-              setValue("location.latitude", `${coordinates.lat}`, { shouldValidate: true });
-              setValue("location.longitude", `${coordinates.lng}`, { shouldValidate: true });
-            }}
-          />
+  visible={isOpen}
+  disable={!mapinteration} // Asegúrate de que sea falso para habilitar la interacción
+  linkAddress={watch("linkAddress")}
+  latitude={Number(watch("location.latitude"))}
+  longitude={Number(watch("location.longitude"))}
+  onChange={(coordinates: { lat: number; lng: number }) => {
+    setValue("location.latitude", `${coordinates.lat}`, { shouldValidate: true });
+    setValue("location.longitude", `${coordinates.lng}`, { shouldValidate: true });
+    const newCoordinates = `${coordinates.lat},${coordinates.lng}`;
+    setGoogleMapsUrl(`https://www.google.com/maps?q=${newCoordinates}`);
+    setValue("linkAddress", newCoordinates);
+  }}
+/>
           <button
             type="button"
             onClick={() => setMapinteration(!mapinteration)}
@@ -620,18 +698,55 @@ const ClientForm = ({
           className="w-full col-span-2 max-sm:col-span-1 relative mb-5"
         >
         
-          <Input
-            label="Ubicación GPS"
-            name="address"
-            icon={<i className="fa-solid fa-location-dot text-2xl"></i>}
-            register={register}
-            errors={errors.address}
-            onChange={(e) => {
-              const newAddress = `https://www.google.com/maps?q=${encodeURIComponent(e.target.value)}`;
-              setGoogleMapsUrl(newAddress);
-              setValue('linkAddress', newAddress);
-            }}
-          />
+        <Input
+  label="Coordenadas GPS"
+  name="linkAddress"
+  icon={<i className="fa-solid fa-location-dot text-2xl"></i>}
+  register={register}
+  errors={errors.linkAddress}
+  placeholder="Ej: -16.7023, -64.8647"
+  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Opcional: Validación instantánea al presionar Enter
+      const value = e.currentTarget.value;
+      const [lat, lng] = value.split(",").map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setValue("location.latitude", lat.toString());
+        setValue("location.longitude", lng.toString());
+      }
+    }
+  }}
+  onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newCoordinates = e.target.value;
+    setValue("linkAddress", newCoordinates);
+
+    const [lat, lng] = newCoordinates.split(",").map(Number);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      try {
+        // Actualiza el mapa primero
+        setValue("location.latitude", lat.toString());
+        setValue("location.longitude", lng.toString());
+        
+        // Geocodificación inversa para dirección
+        if (window.google) {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode(
+            { location: { lat, lng } },
+            (results, status) => {
+              if (status === 'OK' && results?.[0]) {
+                setValue('address', results[0].formatted_address);
+                setGoogleMapsUrl(results[0].formatted_address);
+              }
+            }
+          );
+        }
+      } catch (error) {
+        console.error("Error en geocodificación inversa:", error);
+      }
+    }
+  }}
+/>
 
         
         </motion.div>

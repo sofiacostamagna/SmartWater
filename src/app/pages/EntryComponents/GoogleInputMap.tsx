@@ -9,6 +9,8 @@ type GoogleMapWithSelectionProps = {
   disable?: boolean;
 };
 
+
+
 const GoogleMapWithSelection: React.FC<GoogleMapWithSelectionProps> = ({
   onChange,
   latitude,
@@ -110,11 +112,11 @@ const GoogleMapWithSelection: React.FC<GoogleMapWithSelectionProps> = ({
         });
         setMarker(centerMarker);
 
-        if (latitude && !isNaN(latitude) && longitude && !isNaN(longitude)) {
-          centerMarker.setPosition({ lat: latitude, lng: longitude })
+        if (latitude && longitude) {
+          centerMarker.setPosition({ lat: latitude, lng: longitude });
           onChange({ lat: latitude, lng: longitude });
         } else {
-          centerMarker.setPosition({ lat: initialPosition.lat, lng: initialPosition.lng })
+          centerMarker.setPosition({ lat: initialPosition.lat, lng: initialPosition.lng });
           onChange(initialPosition);
         }
 
@@ -205,6 +207,22 @@ const GoogleMapWithSelection: React.FC<GoogleMapWithSelectionProps> = ({
       updateMarkerPosition(new google.maps.LatLng(latitude, longitude));
     }
   }, [map, latitude, longitude, centerMap, updateMarkerPosition]);
+
+  useEffect(() => {
+    if (map && marker && latitude && longitude) {
+      const position = new google.maps.LatLng(latitude, longitude);
+      marker.setPosition(position);
+      map.setCenter(position);
+    }
+  }, [latitude, longitude, map, marker]);
+
+  useEffect(() => {
+    if (map && marker && latitude !== undefined && longitude !== undefined) {
+      const position = new google.maps.LatLng(latitude, longitude);
+      marker.setPosition(position); // Actualiza la posición del marcador
+      map.setCenter(position); // Centra el mapa en las nuevas coordenadas
+    }
+  }, [latitude, longitude, map, marker]);
 
   const getCoordinatesFromLink = useCallback(
     async (link: string): Promise<{ lat: number; lng: number } | null> => {
